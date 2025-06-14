@@ -35,7 +35,21 @@ Analizar patrones de comportamiento y rendimiento académico en estudiantes de s
 | `Uso_dispositivos` | Numérico | - | Horas diarias de uso de dispositivos electrónicos |
 | `Condicion_fisica` | Numérico | - | Minutos de ejercicio por semana |
 
+## 🎯 Metodología de Análisis
+- **Técnica principal**: Clustering jerárquico (Ward, Average)
+- **Preprocesamiento**: Estandarización de variables
+- **Validación**: Correlación cofenética y análisis de componentes principales
+- **Grupos identificados**: 2-3 clusters óptimos según índices estadísticos
+
+## 📊 Principales Hallazgos
+- **Grupo 1**: Alto rendimiento académico + buenos hábitos
+- **Grupo 2**: Rendimiento medio con variabilidad en hábitos  
+- **Grupo 3**: Bajo rendimiento académico generalizado
+
 ## 🔍 Variables Clave para Segmentación
 1. **Rendimiento académico** (matemáticas, ciencias, lectura)
 2. **Hábitos de estudio** (horas de estudio, asistencia)
 3. **Bienestar físico/emocional** (condición física, nivel de estrés)
+
+---
+*Dataset generado con fines educativos y de investigación académica.*
