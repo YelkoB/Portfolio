@@ -1,0 +1,642 @@
+---
+title: "Análisis de Clustering de Estudiantes"
+author: "Yelko Bejarano"
+subtitle: Identificación de Agrupaciones en el Comportamiento Estudiantil
+output:
+  html_document:
+    theme: flatly
+    highlight: tango
+    toc: true
+    toc_float: true
+    code_folding: hide
+    fig_width: 10
+    fig_height: 6
+  pdf_document:
+    toc: true
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	fig.align = "center",
+	message = FALSE,
+	warning = FALSE,
+	fig.width = 6, 
+  fig.height = 4,
+  dpi = 150
+)
+
+library(ggplot2)
+theme_set(theme_minimal())
+```
+
+# 🎯 Objetivo
+
+Analizar si existe algún tipo de agrupaciones en cuanto al
+comportamiento de los datos de estudiantes, excluyendo la variable de
+identificación Centro de cada individuo así como el identificador
+individual (ID), para identificar comportamientos basados en las demás
+variables.
+
+# 📊 Carga y Preparación de Datos
+
+```{r libraries}
+# Carga de librerías
+library(ggplot2)
+library(NbClust)
+library(dplyr)
+library(gridExtra)
+library(knitr)
+library(kableExtra)
+library(reshape2)
+```
+
+```{r data-loading}
+# Carga de datos
+datos_b <- read.csv("../data/data.csv")
+
+# Preparación inicial - eliminar variable de identificación
+datos_b <- datos_b[,-1]  # Eliminar ID
+datos_cl <- datos_b[,-11]  # Eliminar Centro
+
+# Vista previa de los datos
+head(datos_cl) %>%
+  kable(caption = "Primeras filas del dataset") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+# 🔍 Análisis Exploratorio
+
+## Detección de Outliers
+
+Antes de realizar el análisis cluster, se debe verificar si existen
+valores outlier que puedan crear clusters con objetos muy dispersos.
+Para ello se examina la distancia de Mahalanobis.
+
+```{r outlier-detection, fig.cap="Distancia de Mahalanobis para detección de outliers"}
+# Cálculo de distancia de Mahalanobis
+ma <- mahalanobis(datos_cl, 
+                  apply(datos_cl, 2, mean, na.rm = TRUE),
+                  cov(datos_cl, use = "na.or.complete"))
+
+k <- dim(datos_cl)[2]  # Número de variables
+Lim <- k + 3 * sqrt(k * 2)  # Límite distancia de Mahalanobis
+
+# Gráfico
+plot(ma, pch = 20, ylim = c(0, max(ma, Lim, na.rm = TRUE)),
+     main = "Distancia de Mahalanobis",
+     xlab = "Index", ylab = "Distancia")
+text(ma, rownames(datos_cl), pos = 2, cex = 0.8)
+abline(h = Lim, col = "red", lty = 2)
+```
+
+Se observa como ninguno de los individuos muestra una distancia por
+encima del umbral, por lo que no parece haber ningún outlier muy
+pronunciado.
+
+## Análisis de Escalas
+
+```{r standarization, fig.cap="Comparación antes y después de la estandarización"}
+# Estandarización de datos
+datos_st <- as.data.frame(scale(datos_cl, center = TRUE, scale = TRUE))
+
+# Datos originales
+datos_original <- datos_b[,c(-1,-11)]
+datos_original_long <- stack(datos_original)
+datos_original_long$tipo <- "Original"
+
+# Datos estandarizados  
+datos_st_long <- stack(datos_st)
+datos_st_long$tipo <- "Estandarizado"
+
+# Combinar datos
+datos_combined <- rbind(
+      data.frame(Variable = datos_original_long$ind, 
+             Valor = datos_original_long$values, 
+             Tipo = "Original"),
+      data.frame(Variable = datos_st_long$ind, 
+             Valor = datos_st_long$values, 
+             Tipo = "Estandarizado")
+  )
+
+# Gráfico comparativo
+ggplot(datos_combined, aes(x = Variable, y = Valor, fill = Tipo)) +
+  geom_boxplot(alpha = 0.7) +
+  facet_wrap(~Tipo, scales = "free_y", ncol = 1) +
+  scale_fill_manual(values = c("Original" = "#A8E6CF", "Estandarizado" = "#FFB6C1")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") +
+  labs(title = "Comparación de Escalas: Después vs Antes de Estandarización",
+       subtitle = "La estandarización permite comparar variables en la misma escala",
+       x = "Variables", y = "Valor")
+```
+
+Debido a la naturaleza de los datos, ya que diversas variables están en
+escalas que difieren de forma notable, se propone realizar una
+estandarización de dichos datos previo al análisis.
+
+La **estandarización** transforma todas las variables a una escala común
+(media = 0, desviación estándar = 1), permitiendo que variables con
+diferentes rangos (ej: condición física vs. horas de estudio) sean
+comparables en el análisis de clustering dándoles la misma relevancia en
+el Análisis de Componentes Principales.
+
+# 🌳 Análisis de Clustering Jerárquico
+
+Se realizará un análisis de agrupamiento jerárquico utilizando la
+distancia euclídea para hallar los posibles clusters.
+
+```{r clustering-methods, fig.cap="Dendrogramas con diferentes métodos de clustering"}
+# Matriz de distancias
+D <- dist(datos_st)
+
+# Diferentes métodos de clustering
+hc.ward <- hclust(D, method = "ward.D2")
+hc.avg <- hclust(D, method = "average")
+hc.complete <- hclust(D, method = "complete")
+hc.single <- hclust(D, method = "single")
+```
+
+```{r}
+# Visualización de dendrogramas
+par(mfrow = c(2,2))
+plot(hc.ward, main = "ward.D2", hang = -1, cex = 0.6)
+plot(hc.avg, main = "average", hang = -1, cex = 0.6)
+plot(hc.complete, main = "complete", hang = -1, cex = 0.6)
+plot(hc.single, main = "single", hang = -1, cex = 0.6)
+par(mfrow = c(1,1))
+```
+
+Los **dendrogramas** muestran cómo se agrupan los estudiantes según cada
+método:
+
+-   **Ward.D2**: Muestra clusters equilibrados y bien definidos
+
+<!-- -->
+
+-   **Average**: Presenta buena separación pero con algunos individuos
+    muy alejados
+
+-   **Complete**: Clusters más compactos pero menos balanceados
+
+-   **Single**: Tendencia a crear cadenas largas (menos útil para este
+    análisis)
+
+## Evaluación de Métodos
+
+```{r method-evaluation}
+# Cálculo de correlaciones cofenéticas
+methods <- c("ward.D2", "average", "complete", "single")
+c_coef <- sapply(methods, function(m) {
+    hc <- hclust(D, method = m)
+    cor(cophenetic(hc), D)
+})
+names(c_coef) <- methods
+
+# Tabla de resultados ordenada de mayor a menor
+resultado_metodos <- data.frame(
+  Método = names(c_coef), 
+  Correlación_Cofenética = round(c_coef, 4)
+) %>%
+  arrange(desc(Correlación_Cofenética))
+
+kable(resultado_metodos, 
+      caption = "Evaluación de métodos de clustering (ordenado de mejor a peor)") %>%
+  kable_styling(bootstrap_options = c("striped", "hover")) %>%
+  row_spec(1, bold = TRUE, color = "white", background = "#28a745") %>%  # Verde para el mejor
+  row_spec(2, bold = TRUE, color = "white", background = "#ffc107")     # Amarillo para el seleccionado
+```
+
+Se opta por seleccionar el método **Ward.D2** aunque muestra la segunda
+mejor correlación cofenética (0.5229). Esta decisión se basa en que el
+dendrograma de Ward.D2 presenta una **distribución más equilibrada e
+interpretable** de los clusters comparado con el método **Average**, que
+aunque tiene mejor correlación cofenética (0.6019), muestra dos
+individuos muy separados del resto de grupos, creando una estructura
+menos balanceada. De todos modos se hará un análisis paralelo de ambos
+métodos para comparar posteriormente los resultados y decidir en base a
+ellos.
+
+## Determinación del Número Óptimo de Clusters
+
+### Para Ward.D2
+
+```{r optimal-clusters}
+# Determinación automática del número de clusters
+nbclust.ward <- NbClust(data = datos_st, 
+                       diss = NULL, 
+                       distance = "euclidean", 
+                       method = "ward.D2")
+```
+
+### Para Average
+
+```{r}
+nbclust.average <- NbClust(data = datos_st, 
+                          diss = NULL, 
+                          distance = "euclidean", 
+                          method = "average")
+```
+
+### Resultados
+
+La función `NbClust()` evalúa múltiples criterios estadísticos para
+determinar el número óptimo de clusters:
+
+-   **Método Ward**: La mayoría de índices sugieren **2 clusters** como
+    solución óptima.
+-   **Método Average**: Los criterios indican **3 clusters** como la
+    mejor segmentación.
+
+Esta evaluación automática se basa en 24 índices diferentes (Hubert,
+D-index, Silhouette, etc.) que analizan la cohesión interna de los
+grupos y la separación entre ellos.
+
+```{r dendrograms-final, fig.cap="Dendrogramas con clusters seleccionados"}
+par(mfrow = c(1,2))
+plot(hc.ward, main = "Método Ward", hang = -1, cex = 0.6)
+rect.hclust(hc.ward, k = 2, border = "blue")
+
+plot(hc.avg, main = "Método Average", hang = -1, cex = 0.6)
+rect.hclust(hc.avg, k = 3, border = "blue")
+par(mfrow = c(1,1))
+```
+
+Los **rectángulos azules** delimitan los clusters óptimos según cada
+método:
+
+-   **Ward**: Sugiere 2 grupos principales basados en las alturas de
+    corte del dendrograma.
+
+-   **Average**: Identifica 3 grupos distintos con uno de ellos
+    compuesto por solamente dos individuos.
+
+# 📐 Análisis de Componentes Principales
+
+```{r pca-analysis}
+# PCA
+acp <- princomp(datos_st)
+summary(acp)
+
+# Cargas de las componentes principales
+round(acp$loadings[,1:2], 3) %>%
+  kable(caption = "Cargas de las dos primeras componentes principales") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+## Visualización con Clusters
+
+```{r pca-visualization, fig.cap="Clustering jerárquico visualizado en el espacio PCA"}
+# Ward con 2 clusters
+datos_st$Grupo <- nbclust.ward$Best.partition
+
+df_acp <- data.frame(
+  PC1 = acp$scores[,1],
+  PC2 = acp$scores[,2],
+  Grupo = factor(datos_st$Grupo)
+)
+
+p1 <- ggplot(df_acp, aes(x = PC1, y = PC2, color = Grupo)) +
+  geom_point(size = 1.5) +
+  geom_text(aes(label = rownames(datos_st)), hjust = 0, vjust = 2, size = 1.5) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  scale_color_manual(values = c("#FF9999", "#66B2FF")) +
+  labs(x = "Primera Componente Principal",
+       y = "Segunda Componente Principal") +
+  ggtitle("Clustering Jerárquico Ward")
+
+# Average con 3 clusters
+datos_st$Grupo <- nbclust.average$Best.partition
+
+df_acp <- data.frame(
+  PC1 = acp$scores[,1],
+  PC2 = acp$scores[,2],
+  Grupo = factor(datos_st$Grupo)
+)
+
+p2 <- ggplot(df_acp, aes(x = PC1, y = PC2, color = Grupo)) +
+  geom_point(size = 1.5) +
+  geom_text(aes(label = rownames(datos_st)), hjust = 0, vjust = 2, size = 1.5) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  scale_color_manual(values = c("#FF9999", "#66B2FF", "#09FA97")) +
+  labs(x = "Primera Componente Principal",
+       y = "Segunda Componente Principal") +
+  ggtitle("Clustering Jerárquico Average")
+
+grid.arrange(p1, p2, ncol = 1)
+```
+
+Los **gráficos PCA** proyectan los clusters en un espacio bidimensional
+donde:
+
+-   **Eje X (CP1)**: Rendimiento académico (derecha = mejor
+    rendimiento).
+
+-   **Eje Y (CP2)**: Combinación de condición física y estrés (arriba =
+    alta condición física + alto estrés).
+
+-   **Colores**: Representan los diferentes grupos identificados.
+
+-   **Líneas punteadas**: Marcan los valores promedio (punto de
+    referencia)
+
+## Interpretación de Componentes
+
+En cuanto al gráfico obtenido, se puede apreciar como hay dos grupos
+principales en ambos métodos con ciertas variaciones de individuos que
+se encuentran más centrados en el gráfico.
+
+**Primera Componente Principal (CP1)**: Parece tener que ver con el
+rendimiento académico (correlación positiva con Promedios en
+asignaturas) y buenos hábitos de estudio (correlaciones positivas con
+Horas de sueño, Horas de estudio y Asistencia, correlación negativa con
+Uso de Dispositivos).
+
+**Segunda Componente Principal (CP2)**: Propone una diferenciación
+compleja relacionada con aspectos físicos y emocionales contradictorios
+donde valores altos indican simultáneamente alta Condición Física
+(positivo) y alto Nivel de Estrés (negativo).
+
+# 🔧 Análisis con Outliers Eliminados
+
+Se observa que algunos individuos atípicos (individuos 72 y 79)
+corresponden a los valores más altos en la variable Condición Física. Se
+realizará el análisis eliminando estos outliers.
+
+```{r outliers-removed}
+# Eliminación de outliers específicos
+datos_2 <- datos_b[c(-72, -79),]
+boxplot(datos_2[,10], las = 2, cex.axis = 0.7, 
+        main = "Distribución de Condición Física sin outliers")
+
+# Nuevo análisis
+datos_2 <- datos_2[,-11]
+datos_st_new <- as.data.frame(scale(datos_2, center = TRUE, scale = TRUE))
+
+D_new <- dist(datos_st_new)
+hc.avg_new <- hclust(D_new, method = "average")
+
+# Evaluación de métodos sin outliers
+methods <- c("ward.D2", "average", "complete", "single")
+c_coef_new <- sapply(methods, function(m) {
+    hc <- hclust(D_new, method = m)
+    cor(cophenetic(hc), D_new)
+})
+
+# Tabla de resultados ordenada de mayor a menor
+resultado_metodos_new <- data.frame(
+  Método = names(c_coef_new), 
+  Correlación_Cofenética = round(c_coef_new, 4)
+) %>%
+  arrange(desc(Correlación_Cofenética))
+
+kable(resultado_metodos_new, 
+      caption = "Evaluación de métodos sin outliers (ordenado de mejor a peor)") %>%
+  kable_styling(bootstrap_options = c("striped", "hover")) %>%
+  row_spec(1, bold = TRUE, color = "white", background = "#28a745")
+```
+
+El método **average** muestra ahora la mejor correlación cofenética
+(0.5655), por lo que se selecciona como el más adecuado.
+
+```{r optimal-clusters-refined}
+# Número óptimo de clusters sin outliers
+nbclust.average_new <- NbClust(data = datos_st_new, 
+                              diss = NULL, 
+                              distance = "euclidean", 
+                              method = "average")
+```
+
+```{r final-dendrogram, fig.cap="Dendrograma final con método Average"}
+plot(hc.avg_new, main = "Método Average - Análisis Final", hang = -1)
+rect.hclust(hc.avg_new, k = 3, border = "blue")
+```
+
+# 📈 Resultados Finales
+
+```{r final-pca}
+# PCA del análisis refinado
+acp_final <- princomp(datos_st_new)
+acp_final$loadings[,1] <- -1 * acp_final$loadings[,1]  # Ajuste de orientación
+
+# Cargas finales
+round(acp_final$loadings[,1:2], 3) %>%
+  kable(caption = "Cargas de componentes principales - Análisis final") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+```{r final-visualization, fig.cap="Segmentación final de estudiantes"}
+datos_st_new$Grupo <- nbclust.average_new$Best.partition
+
+df_acp_final <- data.frame(
+  PC1 = -1 * acp_final$scores[,1],
+  PC2 = acp_final$scores[,2],
+  Grupo = factor(datos_st_new$Grupo)
+)
+
+ggplot(df_acp_final, aes(x = PC1, y = PC2, color = Grupo)) +
+  geom_point(size = 1.5) +
+  geom_text(aes(label = rownames(datos_st_new)), hjust = 0, vjust = 2, size = 1.5) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  scale_color_manual(values = c("#FF9999", "#66B2FF", "#09FA97")) +
+  labs(x = "Primera Componente Principal",
+       y = "Segunda Componente Principal") +
+  ggtitle("Clustering Jerárquico Average - Análisis Final")
+```
+
+El **gráfico final** muestra la segmentación definitiva donde se observa
+claramente:
+
+-   **Grupo 1 (Rojo)**: Concentrado en la zona izquierda (bajo
+    rendimiento académico).
+
+-   **Grupo 2 (Azul)**: Disperso en el centro con tendencia variable en
+    CP2 (rendimiento medio).
+
+-   **Grupo 3 (Verde)**: Ubicado en la zona derecha con valores diversos
+    en CP2 (alto rendimiento académico)
+
+# 👥 Caracterización de Grupos Identificados
+
+En cuanto a los grupos obtenidos, se puede observar como estos se
+dividen según el rendimiento académico (CP1) principalmente.
+
+```{r group-summary}
+# Resumen por grupos
+grupo_summary <- datos_st_new %>%
+  group_by(Grupo) %>%
+  summarise(
+    N_estudiantes = n(),
+    across(everything(), ~ round(mean(.x), 2)),
+    .groups = 'drop'
+  )
+
+kable(grupo_summary, 
+      caption = "Características promedio por grupo (valores estandarizados)") %>%
+  kable_styling(bootstrap_options = c("striped", "hover")) %>%
+  row_spec(1, background = "#FFE6E6") %>%  # Rojo claro para Grupo 1
+  row_spec(2, background = "#E6F3FF") %>%  # Azul claro para Grupo 2  
+  row_spec(3, background = "#E6FFE6")     # Verde claro para Grupo 3
+```
+
+```{r group-characteristics, fig.cap="Perfil de características por grupo"}
+# Gráfico de radar/perfil por grupo
+
+# Seleccionar variables clave para caracterización
+vars_clave <- c("Promedio_matematicas", "Promedio_ciencias", "Promedio_lectura", 
+                "Horas_estudio", "Uso_dispositivos", "Asistencia", "Condicion_fisica", "Nivel_estres")
+
+perfil_grupos <- datos_st_new %>%
+  select(Grupo, all_of(vars_clave)) %>%
+  group_by(Grupo) %>%
+  summarise(across(everything(), mean), .groups = 'drop') %>%
+  melt(id.vars = "Grupo", variable.name = "Variable", value.name = "Valor")
+
+# Gráfico de barras agrupadas
+ggplot(perfil_grupos, aes(x = Variable, y = Valor, fill = factor(Grupo))) +
+  geom_bar(stat = "identity", position = "dodge", alpha = 0.8) +
+  scale_fill_manual(values = c("1" = "#FF9999", "2" = "#66B2FF", "3" = "#09FA97"),
+                    name = "Grupo") +
+  geom_hline(yintercept = 0, linetype = "dashed", alpha = 0.5) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Perfil de Características por Grupo",
+       subtitle = "Valores estandarizados (0 = media poblacional)",
+       x = "Variables", y = "Valor Estandarizado") +
+  coord_cartesian(ylim = c(-1.5, 1.5))
+```
+
+El **gráfico de barras** compara los grupos en variables clave donde:
+
+-   **Línea horizontal (0)**: Representa la media de toda la población.
+
+-   **Barras positivas**: Por encima de la media poblacional.
+
+-   **Barras negativas**: Por debajo de la media poblacional.
+
+Se observa claramente como el **Grupo 3 (verde)** supera la media en
+rendimiento académico y de buenos hábitos (), mientras que el **Grupo 1
+(rojo)** está consistentemente por debajo. Además de esto se ven las
+diferencias notables respecto al estrés y la condición física donde el
+Grupo 3 está por encima de la media.
+
+## 🔴 Grupo 1: Estudiantes con Bajo Rendimiento
+
+**Características principales:**
+
+-   📉 **Rendimiento académico**: Por debajo de la media en todas las
+    asignaturas.
+
+-   📚 **Hábitos de estudio**: Menor dedicacón en horas de estudio y
+    asistencia a clases, a la vez que mayor uso de dispositivos
+    electrónicos junto con menor horas de sueño.
+
+-   🎯 **Patrón identificativo**: Valores negativos consistentes en CP1
+    (rendimiento académico).
+
+-   📊 **Dispersión**: Comportamiento variable en CP2 (aspectos
+    físicos/emocionales)
+
+------------------------------------------------------------------------
+
+## 🔵 Grupo 2: Estudiantes con Rendimiento Medio
+
+**Características principales:**
+
+-   📊 **Rendimiento académico**: Valores medios o ligeramente por
+    debajo de la media.
+
+-   ⚖️ **Patrón compensatorio**: Si tienen valores altos en rendimiento,
+    presentan patrones variables en aspectos físicos/emocionales.
+
+-   🎯 **Patrón identificativo**: Posición central en CP1, tendencia
+    ligeramente negativa en CP2.
+
+-   🔄 **Equilibrio inestable**: Compensación entre diferentes aspectos
+    del desarrollo estudiantil
+
+------------------------------------------------------------------------
+
+## 🟢 Grupo 3: Estudiantes de Alto Rendimiento Integral
+
+**Características principales:**
+
+-   🌟 **Rendimiento académico**: Bastante por encima de la media en
+    todas las áreas.
+
+-   💪 **Perfil complejo**: Buen rendimiento académico con patrones
+    diversos en condición física y estrés.
+
+-   **🎯 Patrón identificativo**: Valores positivos en CP1 con tendencia
+    positiva en CP2.
+
+-   🏆 **Excelencia académica**: Destacan principalmente en rendimiento
+    académico.
+
+```{r classification-table}
+# Tabla de criterios de clasificación
+criterios_clasificacion <- data.frame(
+  Criterio = c("Rendimiento Académico/Hábitos (CP1)", "Condición Física/Estrés (CP2)", "Posición en Gráfico PCA"),
+  "Grupo 1" = c("< -0.5 (Bajo)", "Variable", "Lado izquierdo"),
+  "Grupo 2" = c("-0.5 a 0.5 (Medio)", "Tendencia ligeramente negativa", "Centro"),
+  "Grupo 3" = c("> 0.5 (Alto)", "Tendencia positiva", "Lado derecho"),
+  check.names = FALSE
+)
+
+kable(criterios_clasificacion, 
+      caption = "Criterios de Clasificación de Estudiantes",
+      align = "lccc") %>%
+  kable_styling(bootstrap_options = c("striped", "hover")) %>%
+  column_spec(2, background = "#FFE6E6") %>%  # Grupo 1 - rojo claro
+  column_spec(3, background = "#E6F3FF") %>%  # Grupo 2 - azul claro
+  column_spec(4, background = "#E6FFE6")     # Verde claro para Grupo 3
+```
+
+## Resumen de Identificación
+
+La clasificación de estudiantes se basa principalmente en la **Primera
+Componente Principal (CP1)**, que representa el rendimiento académico
+general, complementada por la **Segunda Componente Principal (CP2)**,
+que refleja una combinación compleja de condición física y nivel de
+estrés.
+
+**Regla de clasificación simplificada:**
+
+1.  **Calcular CP1** (combinación de promedios académicos y hábitos de
+    estudio y de bienestar)
+2.  **Evaluar CP2** (equilibrio entre condición física y nivel de
+    estrés)
+3.  **Aplicar umbrales** en el espacio bidimensional PCA
+4.  **Asignar grupo** según la posición en el gráfico de componentes
+    principales
+
+# 📋 Conclusiones
+
+El análisis de clustering ha permitido identificar **tres grupos
+distintos de estudiantes** con características diferenciadas en términos
+de rendimiento académico y patrones físicos/emocionales.
+
+## Hallazgos Principales
+
+✅ **Eliminación exitosa de outliers**: Los estudiantes 72 y 79 (valores
+extremos en Condición Física) fueron correctamente identificados y
+eliminados, mejorando la calidad del clustering.
+
+✅ **Método óptimo identificado**: El método Average con correlación
+cofenética de 0.5655 resultó ser el más adecuado tras la eliminación de
+outliers.
+
+✅ **Tres perfiles claramente diferenciados**: La segmentación reveló
+grupos con características distintivas y interpretables.
+
+✅ **Componentes principales interpretables**:
+
+-   CP1 representa el rendimiento académico general y hábitos
+    estudiantiles y de bienestar.
+
+-   CP2 refleja una combinación compleja de condición física y estrés
