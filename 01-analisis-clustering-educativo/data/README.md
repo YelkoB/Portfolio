@@ -1,8 +1,5 @@
 # 📊 Descripción del Dataset: Rendimiento Académico y Hábitos
 
-## 🎯 Objetivo del Estudio
-Analizar patrones de comportamiento y rendimiento académico en estudiantes de secundaria mediante técnicas de clustering jerárquico.
-
 ## 📈 Información General
 - **Tamaño**: 100 estudiantes
 - **Período**: Estudio transversal
