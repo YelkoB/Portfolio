@@ -1,7 +1,7 @@
-# 🎯 Segmentación Inteligente de Perfiles de Rendimiento
+# Segmentación Inteligente de Perfiles de Rendimiento
 
-##  Resumen Ejecutivo
-Sistema de clasificación automática que identifica 3 perfiles de estudiantes con **94% de precisión**, permitiendo estrategias personalizadas de intervención educativa.
+## 🎯 Objetivo
+
 
 ## 🔍 Archivos Principales
 - **[📊 Base de Datos](./data/README.md)** - Información BD
