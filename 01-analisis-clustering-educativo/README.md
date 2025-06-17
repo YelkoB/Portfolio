@@ -1,10 +1,11 @@
 # 🎯 Segmentación Inteligente de Perfiles de Rendimiento
 
-## 📊 Resumen Ejecutivo
+##  Resumen Ejecutivo
 Sistema de clasificación automática que identifica 3 perfiles de estudiantes con **94% de precisión**, permitiendo estrategias personalizadas de intervención educativa.
 
 ## 🔍 Archivos Principales
-- **[📊 Análisis Interactivo (HTML)](./code/analisis_clustering.html)** - Versión navegable completa
+- **[📊 Base de Datos (HTML)](./code/analisis_clustering.html)** - Información BD
+- **[📄 Análisis Interactivo (HTML)](./code/analisis_clustering.html)** - Versión navegable completa
 - **[💼 Reporte Ejecutivo (PDF)](./output/memoria-ejecutiva.pdf)** - Presentación business-focused
 - **[🔧 Código Fuente (.Rmd)](./code/analisis-clustering.Rmd)** - Código reproducible comentado
 
