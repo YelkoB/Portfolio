@@ -1,6 +1,6 @@
 # 📊 Portfolio de Análisis de Datos - Yelko Bejarano
 
-**Máster en Bioestadística | Especialista en Modelización Predictiva**
+*Máster en Bioestadística* | *Especialista en Modelización Predictiva*
 
 ## 🚀 Proyectos Destacados
 
