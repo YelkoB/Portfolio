@@ -1,8 +1,3 @@
----
-layout: default
-markdown: kramdown
----
-
 # 📊 Descripción del Dataset: Rendimiento Académico y Hábitos
 
 ## 📈 Información General
@@ -14,6 +9,7 @@ markdown: kramdown
 ## 📋 Variables del Dataset
 
 ### 🔢 Identificación
+
 | Variable | Tipo | Rango | Descripción |
 |----------|------|-------|-------------|
 | `ID` | Numérico | 1-100 | Identificador único del estudiante |
@@ -21,6 +17,7 @@ markdown: kramdown
 | `Centro` | Categórico | 1-9 | Centro educativo de procedencia |
 
 ### 📚 Rendimiento Académico
+
 | Variable | Tipo | Rango | Descripción |
 |----------|------|-------|-------------|
 | `Promedio_matematicas` | Numérico | 0-100 | Calificación promedio en matemáticas |
@@ -29,6 +26,7 @@ markdown: kramdown
 | `Asistencia` | Porcentaje | 0-100% | Porcentaje de asistencia a clases |
 
 ### 🏃‍♂️ Hábitos y Estilo de Vida
+
 | Variable | Tipo | Rango | Descripción |
 |----------|------|-------|-------------|
 | `Horas_estudio` | Numérico | - | Horas de estudio semanales |
