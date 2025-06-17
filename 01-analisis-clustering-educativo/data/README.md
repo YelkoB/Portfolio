@@ -1,3 +1,8 @@
+---
+layout: default
+markdown: kramdown
+---
+
 # 📊 Descripción del Dataset: Rendimiento Académico y Hábitos
 
 ## 📈 Información General
