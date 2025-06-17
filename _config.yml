@@ -1,15 +1,7 @@
-# Configuración GitHub Pages
 exclude:
-  - "*.Rmd"
-  - "*.R" 
+  - "*.Rmd"           
+  - "*.R"             
   - requirements.txt
-  - "*.md"
-  - README.md
 
-# Solo procesar HTML
-include:
-  - "*.html"
-
-# Configuración Jekyll
 markdown: kramdown
 theme: minima
