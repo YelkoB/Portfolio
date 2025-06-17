@@ -4,5 +4,10 @@ exclude:
   - requirements.txt
 
 markdown: kramdown
+kramdown:
+  input: GFM
+  hard_wrap: false
+  auto_ids: true
+  syntax_highlighter: rouge
 theme: minima
 remote_theme: pages-themes/minimal@v0.2.0
