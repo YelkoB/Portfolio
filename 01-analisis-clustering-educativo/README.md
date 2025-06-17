@@ -1,7 +1,7 @@
 # Segmentación Inteligente de Perfiles de Rendimiento
 
 ## 🎯 Objetivo
-
+Analizar patrones de comportamiento y rendimiento académico en estudiantes de secundaria mediante técnicas de clustering jerárquico para su clasificación.
 
 ## 🔍 Archivos Principales
 - **[📊 Descripción del Dataset](./data/README.md)**
