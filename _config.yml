@@ -1,13 +1,3 @@
-remote_theme: poole/hyde
+remote_theme: pages-themes/minimal@v0.2.0
 exclude: ["*.Rmd", "*.R"]
 markdown: kramdown
-
-title: "Yelko Bejarano"
-tagline: "Data Scientist & Biostatistician"
-description: "Portfolio de Análisis de Datos"
-baseurl: ""
-url: "https://yelkob.github.io/Portfolio"
-
-# Hyde settings
-hyde:
-  theme: "theme-base-08"  # Color scheme
