@@ -4,10 +4,10 @@
 
 
 ## 🔍 Archivos Principales
-- **[📊 Base de Datos](./data/README.md)** - Información BD
-- **[🔍 Análisis Interactivo (HTML)](./code/analisis_clustering.html)** - Versión navegable completa
-- **[💼 Memoria Ejecutiva (PDF)](./output/memoria-ejecutiva.pdf)** - Presentación business-focused
-- **[📋 Memoria Técnica (.Rmd)](./code/analisis-clustering.pdf)** - Código reproducible blablabla
+- **[📊 Descripción del Dataset](./data/README.md)**
+- **[🔍 Análisis Interactivo (HTML)](./code/analisis_clustering.html)**
+- **[💼 Memoria Ejecutiva (PDF)](./output/memoria-ejecutiva.pdf)**
+- **[📋 Memoria Técnica (.Rmd)](./code/analisis-clustering.pdf)**
 
 ## 🎯 Resultados Clave
 - ✅ **3 perfiles identificados** con características específicas
