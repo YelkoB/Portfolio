@@ -1,8 +1,7 @@
-remote_theme: poole/hyde@v2.1.0
+remote_theme: poole/hyde
 exclude: ["*.Rmd", "*.R"]
 markdown: kramdown
 
-# Configuración Hyde
 title: "Yelko Bejarano"
 tagline: "Data Scientist & Biostatistician"
 description: "Portfolio de Análisis de Datos"
