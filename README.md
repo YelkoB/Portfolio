@@ -4,7 +4,7 @@
 
 ## 🚀 Proyectos Destacados
 
-### 1. [🎯 Segmentación Inteligente de Perfiles de Rendimiento](./01-analisis-clustering-educativo/code/analisis_clustering.html)
+### 1. [🎯 Segmentación Inteligente de Perfiles de Rendimiento](./01-analisis-clustering-educativo/README.md)
 **Problema:** ¿Cómo personalizar estrategias educativas para 100+ estudiantes?  
 **Solución:** Sistema de clasificación automática en 3 perfiles con 94% de precisión  
 **Impacto:** Identificación temprana de riesgo académico y estrategias personalizadas  
