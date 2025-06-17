@@ -1,7 +1,14 @@
-exclude:
-  - "*.Rmd"           
-  - "*.R"             
-  - requirements.txt
-
+remote_theme: poole/hyde@v2.1.0
+exclude: ["*.Rmd", "*.R"]
 markdown: kramdown
-remote_theme: pages-themes/minimal@v0.2.0
+
+# Configuración Hyde
+title: "Yelko Bejarano"
+tagline: "Data Scientist & Biostatistician"
+description: "Portfolio de Análisis de Datos"
+baseurl: ""
+url: "https://yelkob.github.io/Portfolio"
+
+# Hyde settings
+hyde:
+  theme: "theme-base-08"  # Color scheme
