@@ -1,6 +1,4 @@
-![image](https://github.com/user-attachments/assets/32ee8ab4-47a5-4353-b07c-fae89448e458)
 
-![image](https://github.com/user-attachments/assets/4be0c515-7bce-44d8-a411-d07498bfacba)
 # 📋 Memoria Ejecutiva: Segmentación de Estudiantes
 
 > **Objetivo:** Identificar patrones de comportamiento estudiantil mediante clustering automático para clasificación en perfiles diferenciados.
@@ -20,19 +18,13 @@
 
 ## 📊 Perfiles Identificados
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+### Características por Grupo
+![Perfil de Características por Grupo](https://github.com/user-attachments/assets/4be0c515-7bce-44d8-a411-d07498bfacba)
+*Características promedio por grupo (valores estandarizados). La línea horizontal en 0 representa la media poblacional.*
 
-<div>
-<img src="./output/visualizations/perfil-caracteristicas-grupos.png" alt="Perfil de Características por Grupo" style="width: 100%; max-width: 500px;">
-<p><em>Características promedio por grupo (valores estandarizados)</em></p>
-</div>
-
-<div>
-<img src="./output/visualizations/clustering-pca-final.png" alt="Clustering PCA Final" style="width: 100%; max-width: 500px;">
-<p><em>Segmentación final en espacio de componentes principales</em></p>
-</div>
-
-</div>
+### Segmentación Final
+![Clustering PCA Final](https://github.com/user-attachments/assets/4be0c515-7bce-44d8-a411-d07498bfacba)
+*Distribución de los 3 grupos en el espacio de componentes principales. Separación clara entre perfiles.*
 
 ### 🔴 **Grupo 1: Bajo Rendimiento** (33%)
 - Rendimiento académico por debajo de la media en todas las áreas
