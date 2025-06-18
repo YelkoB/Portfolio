@@ -44,8 +44,8 @@
 
 ## 📂 Documentación Técnica
 
-- 💾 **[Descripción de Datos](./data/README.md)**
-- 🔍 **[Análisis Completo (HTML)](./01-analisis-clustering-educativo/code/analisis_clustering.html)**
-- 📄 **[Reporte Técnico (PDF)](./01-analisis-clustering-educativo/output/analisis-clustering.pdf)**
+- 💾 **[Descripción de Datos](../data/README.md)**
+- 🔍 **[Análisis Completo (HTML)](../code/analisis_clustering.html)**
+- 📄 **[Reporte Técnico (PDF)](./output/analisis-clustering.pdf)**
 
 ---
