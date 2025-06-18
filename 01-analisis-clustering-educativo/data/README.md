@@ -1,4 +1,4 @@
-# 📊 Descripción del Dataset: Rendimiento Académico y Hábitos
+# 💾 Descripción del Dataset: Rendimiento Académico y Hábitos
 
 ## 📈 Información General
 - **Tamaño**: 100 estudiantes
