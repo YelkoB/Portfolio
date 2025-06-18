@@ -1,7 +1,7 @@
 # 💼 Memoria Ejecutiva: Segmentación de Estudiantes
 
-> Objetivo: Identificar patrones de comportamiento estudiantil mediante clustering jerárquico para clasificación automática en perfiles diferenciados.
-> Muestra: 100 estudiantes analizados mediante clustering jerárquico.
+> **Objetivo**: Identificar patrones de comportamiento estudiantil mediante clustering jerárquico para clasificación automática en perfiles diferenciados.  
+> **Muestra**: 100 estudiantes analizados mediante clustering jerárquico.
 
 ---
 
