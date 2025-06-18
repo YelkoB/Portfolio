@@ -45,9 +45,9 @@
 
 ## 🔍 Metodología
 
-**Técnica:** Clustering jerárquico con método Average tras eliminación de outliers
-**Validación:** Análisis de Componentes Principales (PCA)
-**Interpretación:** 
+**Técnica:** Clustering jerárquico con método Average tras eliminación de outliers  
+**Validación:** Análisis de Componentes Principales (PCA)  
+**Interpretación:**  
 - **CP1 (Eje X):** Rendimiento académico y hábitos de estudio
 - **CP2 (Eje Y):** Balance condición física - nivel de estrés
 
