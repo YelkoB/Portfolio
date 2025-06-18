@@ -9,7 +9,7 @@ Analizar patrones de comportamiento y rendimiento académico en estudiantes medi
 - **[💼 Memoria Ejecutiva (PDF)](./output/memoria-ejecutiva.pdf)**
 - **[📋 Memoria Técnica (PDF)](./code/analisis-clustering.pdf)**
 
-## 📊 Principales Hallazgos
+## 💡 Principales Hallazgos
 - ✅ **3 perfiles diferenciados** estadísticamente válidos  
 - ✅ **Método Average** seleccionado (correlación cofenética: 0.57)  
 - ✅ **Patrones interpretables** en rendimiento académico y hábitos  
