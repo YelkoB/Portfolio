@@ -3,7 +3,7 @@
 ## 🎯 Objetivo
 Analizar patrones de comportamiento y rendimiento académico en estudiantes mediante técnicas de clustering jerárquico para su clasificación.
 
-## 🗂️ Archivos Principales
+## 📂 Archivos Principales
 - **[📊 Descripción del Dataset](./data/README.md)**
 - **[🔍 Análisis Interactivo (HTML)](./code/analisis_clustering.html)**
 - **[💼 Memoria Ejecutiva (PDF)](./output/memoria-ejecutiva.pdf)**
