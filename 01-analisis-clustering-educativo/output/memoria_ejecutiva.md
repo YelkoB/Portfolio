@@ -11,7 +11,7 @@
 *Características promedio por grupo (valores estandarizados). La línea horizontal en 0 representa la media poblacional.*
 
 ### Segmentación Final
-![Clustering PCA Final]([./output/visualizations/clustering-pca-final.png](https://github.com/user-attachments/assets/4be0c515-7bce-44d8-a411-d07498bfacba))
+![Clustering PCA Final](https://github.com/user-attachments/assets/4be0c515-7bce-44d8-a411-d07498bfacba)
 *Distribución de los 3 grupos en el espacio de componentes principales. Separación clara entre perfiles.*
 
 ### 🔴 **Grupo 1: Estudiantes con Bajo Rendimiento** (33%)
