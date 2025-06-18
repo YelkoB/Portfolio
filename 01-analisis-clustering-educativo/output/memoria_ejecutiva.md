@@ -11,7 +11,8 @@
 *Características promedio por grupo (valores estandarizados). La línea horizontal en 0 representa la media poblacional.*
 
 ### Segmentación Final
-![Clustering PCA Final](https://github.com/user-attachments/assets/4be0c515-7bce-44d8-a411-d07498bfacba)
+![Clustering PCA Final]((https://github.com/user-attachments/assets/96daf296-e208-4b12-a320-1cae7679f4f4)
+)
 *Distribución de los 3 grupos en el espacio de componentes principales. Separación clara entre perfiles.*
 
 ### 🔴 **Grupo 1: Estudiantes con Bajo Rendimiento** (33%)
@@ -37,45 +38,7 @@
 
 ---
 
-## 🔍 Metodología y Hallazgos
-
-**✅ Eliminación exitosa de outliers:** Los estudiantes 72 y 79 (valores extremos en Condición Física) fueron identificados y eliminados, mejorando la calidad del clustering
-
-**✅ Método óptimo identificado:** El método Average con correlación cofenética de 0.5655 resultó ser el más adecuado tras la eliminación de outliers
-
-**✅ Componentes principales interpretables:**
-- **CP1:** Rendimiento académico general y hábitos estudiantiles y de bienestar
-- **CP2:** Combinación compleja de condición física y nivel de estrés
-
----
-
-## 🔧 Criterios de Clasificación
-
-| **Criterio** | **Grupo 1** | **Grupo 2** | **Grupo 3** |
-|-------------|-------------|-------------|-------------|
-| **Rendimiento Académico/Hábitos (CP1)** | < -0.5 (Bajo) | -0.5 a 0.5 (Medio) | > 0.5 (Alto) |
-| **Condición Física/Estrés (CP2)** | Variable | Tendencia ligeramente negativa | Tendencia positiva |
-| **Posición en Gráfico PCA** | Lado izquierdo | Centro | Lado derecho |
-
-### 📋 Regla de Clasificación Simplificada
-
-1. **Calcular CP1** (combinación de promedios académicos y hábitos de estudio y bienestar)
-2. **Evaluar CP2** (equilibrio entre condición física y nivel de estrés)  
-3. **Aplicar umbrales** en el espacio bidimensional PCA
-4. **Asignar grupo** según la posición en el gráfico de componentes principales
-
----
-
-## 💼 Aplicaciones Empresariales
-
-**🎓 Sector Educativo:** Identificación automática de perfiles estudiantiles para programas personalizados  
-**👥 Recursos Humanos:** Clasificación de candidatos por patrones de comportamiento y rendimiento  
-**📊 Segmentación de Mercado:** Metodología transferible para identificar grupos homogéneos de clientes  
-**🔍 Análisis de Datos:** Sistema escalable para segmentación automática de poblaciones
-
----
-
-## 📚 Documentación Técnica
+## 📂 Documentación Técnica
 
 - 🔍 **[Análisis Completo (HTML)](./code/analisis_clustering.html)**
 - 📄 **[Reporte Técnico (PDF)](./code/analisis-clustering.pdf)**
