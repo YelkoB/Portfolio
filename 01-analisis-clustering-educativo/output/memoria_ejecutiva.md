@@ -1,10 +1,10 @@
 # 💼 Memoria Ejecutiva: Segmentación de Estudiantes
 
-> 🎯 **Objetivo:** Identificar patrones de comportamiento estudiantil mediante clustering jerárquico para clasificación automática en perfiles diferenciados.
+> **Objetivo:** Identificar patrones de comportamiento estudiantil mediante clustering jerárquico para clasificación automática en perfiles diferenciados.
 
 ---
 
-## 📊 Resultados
+## 📈 Resultados
 
 ### Características por Grupo
 ![Perfil de Características por Grupo](https://github.com/user-attachments/assets/4be0c515-7bce-44d8-a411-d07498bfacba)
@@ -16,7 +16,7 @@
 -  ***Eje X (CP1)**: Rendimiento académico (derecha = mejor rendimiento).*
 - ***Eje Y (CP2)**: Combinación de condición física y estrés (arriba = alta condición física + alto estrés).*
 
-## 🧑‍🎓 Perfiles identificados
+## 👥 Perfiles identificados
 
 ### 🔴 **Grupo 1: Estudiantes con Bajo Rendimiento**
 
@@ -49,5 +49,3 @@
 - 🗂️ **[Código Fuente](./code/)**
 
 ---
-
-> **Conclusión:** El análisis de clustering identificó tres grupos distintos de estudiantes con características diferenciadas en términos de rendimiento académico y patrones físicos/emocionales, con metodología aplicable a segmentación empresarial.
