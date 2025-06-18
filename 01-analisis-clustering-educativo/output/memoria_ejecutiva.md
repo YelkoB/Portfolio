@@ -4,7 +4,7 @@
 
 ---
 
-## 📊 Perfiles Identificados
+## 📊 Resultados
 
 ### Características por Grupo
 ![Perfil de Características por Grupo](https://github.com/user-attachments/assets/4be0c515-7bce-44d8-a411-d07498bfacba)
@@ -15,6 +15,8 @@
 *Distribución de los 3 grupos en el espacio de componentes principales donde:*
 -  ***Eje X (CP1)**: Rendimiento académico (derecha = mejor rendimiento).*
 - ***Eje Y (CP2)**: Combinación de condición física y estrés (arriba = alta condición física + alto estrés).*
+
+## 🧑‍🎓 Perfiles identificados
 
 ### 🔴 **Grupo 1: Estudiantes con Bajo Rendimiento**
 
