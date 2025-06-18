@@ -11,8 +11,7 @@
 *Características promedio por grupo (valores estandarizados). La línea horizontal en 0 representa la media poblacional.*
 
 ### Segmentación Final
-![Clustering PCA Final]((https://github.com/user-attachments/assets/96daf296-e208-4b12-a320-1cae7679f4f4)
-)
+![Clustering PCA Final](https://github.com/user-attachments/assets/96daf296-e208-4b12-a320-1cae7679f4f4)
 *Distribución de los 3 grupos en el espacio de componentes principales. Separación clara entre perfiles.*  
 Los gráficos PCA proyectan los clusters en un espacio bidimensional donde:
 -  Eje X (CP1): Rendimiento académico (derecha = mejor rendimiento).
