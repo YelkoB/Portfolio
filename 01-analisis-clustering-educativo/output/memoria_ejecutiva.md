@@ -1,6 +1,6 @@
 # 💼 Memoria Ejecutiva: Segmentación de Estudiantes
 
-> **Objetivo:** Identificar patrones de comportamiento estudiantil mediante clustering jerárquico para clasificación automática en perfiles diferenciados.
+> **Objetivo:** Analizar patrones de comportamiento y rendimiento académico en estudiantes mediante técnicas de clustering jerárquico para su clasificación.
 
 ---
 
@@ -13,8 +13,8 @@
 ### Segmentación Final
 ![Clustering PCA Final](https://github.com/user-attachments/assets/96daf296-e208-4b12-a320-1cae7679f4f4)
 *Distribución de los 3 grupos en el espacio de componentes principales donde:*
--  ***Eje X (CP1)**: Rendimiento académico (derecha = mejor rendimiento).*
-- ***Eje Y (CP2)**: Combinación de condición física y estrés (arriba = alta condición física + alto estrés).*
+-  ***Eje X (CP1):** Rendimiento académico (derecha = mejor rendimiento).*
+-  ***Eje Y (CP2):** Combinación de condición física y estrés (arriba = alta condición física + alto estrés).*
 
 ## 👥 Perfiles identificados
 
