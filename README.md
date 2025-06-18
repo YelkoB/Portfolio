@@ -5,22 +5,25 @@
 ## 🚀 Proyectos Destacados
 
 ### 1. [🎯 Segmentación Inteligente de Perfiles de Rendimiento](./01-analisis-clustering-educativo/README.md)
-**Problema:** ¿Cómo personalizar estrategias educativas para 100+ estudiantes?  
-**Solución:** Sistema de clasificación automática en 3 perfiles con 94% de precisión  
-**Impacto:** Identificación temprana de riesgo académico y estrategias personalizadas  
-**Tecnologías:** R, Clustering Jerárquico, PCA, ggplot2
+**Contexto**: Proyecto académico con datos de 100 estudiantes y 10 variables
+**Metodología**: Clustering jerárquico con validación estadística y análisis PCA
+**Resultados**: Identificación de 3 perfiles estudiantiles claramente diferenciados
+**Competencias**: Análisis multivariante, selección de métodos, interpretación de resultados
+**Tecnologías**: R, Clustering Jerárquico, PCA, NbClust, ggplot2
 
 ### 2. [⚡ Predicción Estratégica de Demanda Energética](./02-prediccion-demanda-energetica/)
-**Problema:** Predicción precisa de consumo eléctrico para planificación estratégica  
-**Solución:** Modelo ARIMA con detección automática de eventos excepcionales  
-**Impacto:** 98.4% precisión en forecasting a 3 años, optimización de inversiones  
-**Tecnologías:** R, Series Temporales, ARIMA, Forecast
+**Contexto**: Análisis de consumo eléctrico de Austria (2012-2023) con forecasting
+**Metodología**: Modelo ARIMA estacional con variables de intervención
+**Resultados**: MAPE 1.6%, detección automática de eventos COVID-19
+**Competencias**: Series temporales, modelización predictiva, validación de modelos
+**Tecnologías**: R, ARIMA, Series Temporales, Forecast, Validación Estadística
 
 ### 3. [🏥 Optimización de Gestión Hospitalaria](./03-optimizacion-hospitales/)
-**Problema:** Gestión eficiente de 2,100+ ingresos hospitalarios anuales  
-**Solución:** Sistema predictivo de duración de estancias por perfil de paciente  
-**Impacto:** 60.7% precisión predictiva, optimización de recursos del 20%  
-**Tecnologías:** R, GLM, GAM, Modelos Bayesianos, JAGS
+**Contexto**: Análisis de 2,100 casos con múltiples metodologías estadísticas
+**Metodología**: GLM, GAM y modelos bayesianos con comparación de enfoques
+**Resultados**: 60.7% variación explicada, identificación de factores clave
+**Competencias**: Modelos lineales generalizados, inferencia bayesiana, comparación de metodologías
+**Tecnologías**: R, GLM, GAM, JAGS, Modelos Bayesianos
 
 ## 📈 Competencias Técnicas
 - **Análisis de Datos:** R, Python, SQL
