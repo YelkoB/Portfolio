@@ -4,17 +4,6 @@
 
 ---
 
-## 📊 Resultados Principales
-
-| **Métrica** | **Valor** |
-|-------------|-----------|
-| **Grupos identificados** | 3 perfiles claramente diferenciados |
-| **Método seleccionado** | Average (correlación cofenética: 0.5655) |
-| **Outliers detectados** | 2 estudiantes (IDs 72 y 79) |
-| **Varianza explicada** | 68% (primeras 2 componentes principales) |
-
----
-
 ## 📊 Perfiles Identificados
 
 ### Características por Grupo
