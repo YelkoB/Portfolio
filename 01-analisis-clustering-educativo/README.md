@@ -1,4 +1,4 @@
-# Segmentación Inteligente de Perfiles de Rendimiento
+# 🎓 Agrupamiento de Estudiantes por Patrones de Rendimiento
 
 ## 🎯 Objetivo
 Analizar patrones de comportamiento y rendimiento académico en estudiantes mediante técnicas de clustering jerárquico para su clasificación.
