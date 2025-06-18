@@ -5,10 +5,14 @@
 ## 🚀 Proyectos Destacados
 
 ### 1. [🎯 Segmentación Inteligente de Perfiles de Rendimiento](./01-analisis-clustering-educativo/README.md)
-\**Contexto**: Proyecto académico con datos de 100 estudiantes y 10 variables
-\**Metodología**: Clustering jerárquico con validación estadística y análisis PCA
+**Contexto**: Proyecto académico con datos de 100 estudiantes y 10 variables
+
+**Metodología**: Clustering jerárquico con validación estadística y análisis PCA
+
 **Resultados**: Identificación de 3 perfiles estudiantiles claramente diferenciados
+
 **Competencias**: Análisis multivariante, selección de métodos, interpretación de resultados
+
 **Tecnologías**: R, Clustering Jerárquico, PCA, NbClust, ggplot2
 
 ### 2. [⚡ Predicción Estratégica de Demanda Energética](./02-prediccion-demanda-energetica/)
