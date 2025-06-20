@@ -11,7 +11,7 @@
 **Competencias**: Análisis multivariante, selección de métodos, interpretación de resultados  
 **Tecnologías**: R, Clustering Jerárquico, PCA, NbClust, ggplot2  
 
-### 2. [⚡ Predicción Estratégica de Demanda Energética](./02-prediccion-demanda-energetica/)
+### 2. [⚡ Predicción de Demanda Energética](./02-prediccion-demanda-energetica/)
 **Contexto**: Análisis de consumo eléctrico de Austria (2012-2023) con forecasting  
 **Metodología**: Modelo ARIMA estacional con variables de intervención  
 **Resultados**: MAPE 1.6%, detección automática de eventos COVID-19  
