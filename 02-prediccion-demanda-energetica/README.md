@@ -5,9 +5,8 @@ Desarrollar un modelo predictivo robusto para el consumo eléctrico nacional que
 
 ## 📂 Archivos Principales
 - **[💾 Descripción del Dataset](./data/README.md)**
-- **[🔍 Análisis Técnico Completo](./code/analisis_series_temporales.html)**
+- **[🔍 Análisis Completo (HTML)](./code/analisis_series_temporales.html)**
 - **[💼 Memoria Ejecutiva](./output/memoria_ejecutiva.md)**
-- **[📋 Modelo Predictivo Final](./output/modelo_arima_final.R)**
 
 ## 💡 Principales Hallazgos
 - ✅ **MAPE 1.6%** - Precisión superior al 98% en predicciones
