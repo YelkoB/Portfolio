@@ -1,4 +1,4 @@
-# ⚡ Predicción Estratégica de Demanda Energética
+# ⚡ Predicción de Demanda Energética
 
 ## 🎯 Objetivo
 Desarrollar un modelo predictivo robusto para el consumo eléctrico nacional que permita detectar automáticamente eventos extraordinarios y realizar forecasting estratégico a largo plazo.
