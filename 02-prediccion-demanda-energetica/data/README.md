@@ -19,11 +19,6 @@
 - **Inicio**: Enero 2012
 - **Final**: Diciembre 2023
 
-### 🎯 **Patrones Identificados**
-- **Tendencia**: Ligera tendencia descendente general
-- **Estacionalidad**: Picos recurrentes en meses fríos (Oct-Mar)
-- **Eventos**: Anomalías detectables durante COVID-19 y otros eventos
-
 ### 📊 **Variables Derivadas**
 - **Días_Laborables:** Número de días laborables por mes
 - **Semana_Santa:** Indicador de presencia de Semana Santa
