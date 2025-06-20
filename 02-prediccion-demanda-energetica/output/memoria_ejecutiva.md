@@ -84,6 +84,5 @@
 
 - 💾 **[Descripción de Datos](../data/README.md)**
 - 🔍 **[Análisis Completo](../code/analisis_arima.pdf)**
-- 📊 **[Código Reproducible](../code/modelo_arima.R)**
 
 ---
