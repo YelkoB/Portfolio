@@ -15,7 +15,7 @@ Desarrollar un modelo predictivo robusto para el consumo eléctrico nacional aus
 - ✅ **Variables de intervención** capturan eventos extraordinarios automáticamente
 
 ## 🔧 Tecnologías
-`R` • `Modelos ARIMA` • `Series Temporales` • `Forecasting` • `Eurostat API`
+`R` • `Modelos ARIMA` • `Series Temporales` • `Forecasting`
 
 ## 🔗 Aplicaciones Potenciales
 - **Sector Energético:** Planificación de capacidad y gestión de demanda
