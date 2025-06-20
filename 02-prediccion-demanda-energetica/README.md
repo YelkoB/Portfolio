@@ -1,7 +1,7 @@
 # ⚡ Predicción de Demanda Energética
 
 ## 🎯 Objetivo
-Desarrollar un modelo predictivo robusto para el consumo eléctrico nacional que permita detectar automáticamente eventos extraordinarios y realizar forecasting estratégico a largo plazo.
+Desarrollar un modelo predictivo robusto para el consumo eléctrico nacional austríaco que permita detectar automáticamente eventos extraordinarios y realizar forecasting estratégico a largo plazo.
 
 ## 📂 Archivos Principales
 - **[💾 Descripción del Dataset](./data/README.md)**
