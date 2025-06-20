@@ -5,9 +5,8 @@ Analizar patrones de comportamiento y rendimiento académico en estudiantes medi
 
 ## 📂 Archivos Principales
 - **[💾 Descripción del Dataset](./data/README.md)**
-- **[🔍 Análisis Interactivo (HTML)](./code/analisis_clustering.html)**
+- **[🔍 Análisis Completo (HTML)](./code/analisis_clustering.html)**
 - **[💼 Memoria Ejecutiva](./output/memoria_ejecutiva.md)**
-- **[📋 Memoria Técnica (PDF)](./code/analisis-clustering.pdf)**
 
 ## 💡 Principales Hallazgos
 - ✅ **3 perfiles diferenciados** estadísticamente válidos  
