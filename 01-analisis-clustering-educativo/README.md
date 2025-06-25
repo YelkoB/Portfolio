@@ -14,7 +14,7 @@ Analizar patrones de comportamiento y rendimiento académico en estudiantes medi
 - ✅ **Patrones interpretables** en rendimiento académico y hábitos  
 - ✅ **Componentes principales** explican 68% de la varianza  
 
-## 🔧 Tecnologías
+## 🛠️ Tecnologías
 `R` • `Clustering Jerárquico` • `PCA` • `ggplot2` • `NbClust`
 
 ## 🔗 Aplicaciones Potenciales
