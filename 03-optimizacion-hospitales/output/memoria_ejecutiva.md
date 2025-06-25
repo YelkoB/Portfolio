@@ -56,9 +56,9 @@
 ### Validación Estadística
 | Test | Resultado | Interpretación |
 |------|-----------|----------------|
-| **Normalidad** | p = 0 | ⚠️ Desviación leve (esperada en GAM) |
-| **Homocedasticidad** | p = 0 | ⚠️ Heterocedasticidad (permitida en Gamma) |
-| **Capacidad Explicativa** | 60.7% | ✅ Excelente para datos hospitalarios |
+| Normalidad | p = 0 | ⚠️ Desviación leve (esperada en GAM) |
+| Homocedasticidad | p = 0 | ⚠️ Heterocedasticidad (permitida en Gamma) |
+| Capacidad Explicativa | 60.7% | ✅ Excelente para datos hospitalarios |
 
 ---
 
