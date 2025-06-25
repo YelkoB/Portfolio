@@ -13,7 +13,7 @@
 - **DuracionHospitalizacion:** Numérico → horas de estancia hospitalaria
 - **Rango**: 1-20 horas aproximadamente
 - **Distribución**: Positiva asimétrica (Gamma)
-- **Media**: ~7-8 horas de estancia promedio
+- **Media**: 7-8 horas de estancia promedio
 
 ### 👤 **Características del Paciente**
 - **Edad:** Numérico → Edad del paciente en años
@@ -47,4 +47,4 @@
 - **Anonimización**: Cumple normativas de protección de datos sanitarios
 
 ---
-*Dataset clínico validado para investigación en gestión hospitalaria y modelización predictiva.*
+*Dataset clínico para investigación en gestión hospitalaria y modelización predictiva.*
