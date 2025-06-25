@@ -22,7 +22,7 @@
 ### 👤 **Características del Paciente**
 
 #### Efecto de la Edad (No Lineal)
-- **🌀 Patrón complejo:** Relación no lineal validada (p < 0.001)  
+- **🌀 Patrón complejo:** Relación no lineal validada (forma de U inversa)
 - **💡 Interpretación:** Jóvenes y muy mayores tienen duraciones menores  
 
 #### Diferencias por Sexo  
@@ -38,13 +38,13 @@
 | **🟢 Fractura** | Referencia | Base | 2-5 días |
 
 #### Efectos Hospitalarios
-- **🏥 Variabilidad significativa:** 8.48 edf entre centros (p < 0.001)  
-- **📏 Diferencias:** 15-25% variación en duraciones entre hospitales  
+- **🏥 Variabilidad significativa:** 8.48 hospitales diferenciados de 9
+- **📏 Diferencias:** Prácticamente detecta diferencias por hospital 
 
 ---
 
 ## 🏆 Rendimiento del Modelo Final
-- **Deviance Explicada: 60.7%** - Captura más del 60% de factores determinantes  
+- **Deviance Explicada: 60.7%** - Captura más del 60% de la variabilidad en los datos
 - **R² Ajustado: 36.2%** - Nivel robusto para datos clínicos complejos  
 - **Escala: 0.915** - Ajuste óptimo de distribución Gamma
 
