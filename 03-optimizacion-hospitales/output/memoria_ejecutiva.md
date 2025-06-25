@@ -46,9 +46,9 @@
 ## 🏆 Rendimiento del Modelo Final
 
 ### Capacidad Predictiva
-** Deviance Explicada: 60.7%** - Captura más del 60% de factores determinantes  
-** R² Ajustado: 36.2%** - Nivel robusto para datos clínicos complejos  
-** Escala: 0.915** - Ajuste óptimo de distribución Gamma
+**Deviance Explicada: 60.7%** - Captura más del 60% de factores determinantes  
+**R² Ajustado: 36.2%** - Nivel robusto para datos clínicos complejos  
+**Escala: 0.915** - Ajuste óptimo de distribución Gamma
 
 ---
 
