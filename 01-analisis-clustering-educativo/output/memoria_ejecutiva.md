@@ -21,24 +21,24 @@
 
 ### 🔴 **Grupo 1: Estudiantes con Bajo Rendimiento**
 
-**📉 Rendimiento académico:** Por debajo de la media en todas las asignaturas  
-**📚 Hábitos de estudio:** Menor dedicación en horas de estudio y asistencia, mayor uso de dispositivos electrónicos, menos horas de sueño  
-**🎯 Patrón identificativo:** Valores negativos consistentes en CP1 (rendimiento académico)  
-**📊 Dispersión:** Comportamiento variable en CP2 (aspectos físicos/emocionales)
+- **📉 Rendimiento académico:** Por debajo de la media en todas las asignaturas  
+- **📚 Hábitos de estudio:** Menor dedicación en horas de estudio y asistencia, mayor uso de dispositivos electrónicos, menos horas de sueño  
+- **🎯 Patrón identificativo:** Valores negativos consistentes en CP1 (rendimiento académico)  
+- **📊 Dispersión:** Comportamiento variable en CP2 (aspectos físicos/emocionales)
 
 ### 🔵 **Grupo 2: Estudiantes con Rendimiento Medio**
 
-**📊 Rendimiento académico:** Valores medios o ligeramente por debajo de la media  
-**⚖️ Patrón compensatorio:** Si tienen valores altos en rendimiento, presentan patrones variables en aspectos físicos/emocionales  
-**🎯 Patrón identificativo:** Posición central en CP1, tendencia ligeramente negativa en CP2  
-**🔄 Equilibrio inestable:** Compensación entre diferentes aspectos del desarrollo estudiantil
+- **📑 Rendimiento académico:** Valores medios o ligeramente por debajo de la media  
+- **⚖️ Patrón compensatorio:** Si tienen valores altos en rendimiento, presentan patrones variables en aspectos físicos/emocionales  
+- **🎯 Patrón identificativo:** Posición central en CP1, tendencia ligeramente negativa en CP2  
+- **🔄 Equilibrio inestable:** Compensación entre diferentes aspectos del desarrollo estudiantil
 
 ### 🟢 **Grupo 3: Estudiantes de Alto Rendimiento Integral**
 
-**🌟 Rendimiento académico:** Bastante por encima de la media en todas las áreas  
-**💪 Perfil complejo:** Buen rendimiento académico con patrones diversos en condición física y estrés  
-**🎯 Patrón identificativo:** Valores positivos en CP1 con tendencia positiva en CP2  
-**🏆 Excelencia académica:** Destacan principalmente en rendimiento académico
+- **🌟 Rendimiento académico:** Bastante por encima de la media en todas las áreas  
+- **💪 Perfil complejo:** Buen rendimiento académico con patrones diversos en condición física y estrés  
+- **🎯 Patrón identificativo:** Valores positivos en CP1 con tendencia positiva en CP2  
+- **🏆 Excelencia académica:** Destacan principalmente en rendimiento académico
 
 ---
 
