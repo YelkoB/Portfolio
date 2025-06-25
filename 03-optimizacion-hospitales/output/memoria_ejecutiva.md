@@ -106,8 +106,8 @@
 
 ## 📂 Documentación Técnica
 
-- 💾 **[Descripción de Datos](../data/README.md)**
-- 🔍 **[Análisis Multimetodológico](../code/analisis_hospitalario.pdf)**  
-- 📊 **[Comparación de Modelos](../code/comparacion_glm_gam_bayes.R)**
+- 💾 **[Descripción de Datos](./data/README.md)**
+- 🔍 **[Análisis Completo](./code/analisis_hospitalario.pdf)**  
+- 📊 **[Comparación de Modelos](./code/comparacion_glm_gam_bayes.R)**
 
 ---
