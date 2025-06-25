@@ -5,7 +5,7 @@ Desarrollar modelos predictivos avanzados para optimizar la duración de estanci
 
 ## 📂 Archivos Principales
 - **[💾 Descripción del Dataset](./data/README.md)**
-- **[🔍 Análisis Multimetodológico](./code/analisis_hospitalario.pdf)**
+- **[🔍 Análisis Multimetodológico](./code/analisis_hospitalario.html)**
 - **[💼 Memoria Ejecutiva](./output/memoria_ejecutiva.md)**
 - **[📋 Modelos Comparativos](./output/comparacion_metodologias.R)**
 
