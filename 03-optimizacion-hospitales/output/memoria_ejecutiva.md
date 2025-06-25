@@ -53,39 +53,13 @@
 **📈 R² Ajustado: 36.2%** - Nivel robusto para datos clínicos complejos  
 **✅ Escala: 0.915** - Ajuste óptimo de distribución Gamma
 
-### Validación Estadística
-| Test | Resultado | Interpretación |
-|------|-----------|----------------|
-| Normalidad | p = 0 | ⚠️ Desviación leve (esperada en GAM) |
-| Homocedasticidad | p = 0 | ⚠️ Heterocedasticidad (permitida en Gamma) |
-| Capacidad Explicativa | 60.7% | ✅ Excelente para datos hospitalarios |
-
 ---
 
-## 📊 **Sistema Predictivo**
-**🔮 Casos de Uso Reales:**
+## 🔮 **Sistema Predictivo**
 - Mujer, 75 años, Neumonía → **91 días** predichos (IC: 75-107 días)
 - Hombre, 65 años, Infarto → **45 días** predichos (IC: 38-53 días)  
 - Hombre, 30 años, Fractura → **0.1 días** predichos (alta rápida)
 - Mujer, 45 años, Fractura → **2.1 días** predichos (estancia corta)
-
----
-
-## 🔧 Metodología y Robustez
-
-### Comparación de Enfoques
-| Modelo | AIC | Características | Selección |
-|--------|-----|-----------------|-----------|
-| **GAM B-splines** | 29,251 | Edad no lineal + Efectos aleatorios | ✅ **Óptimo** |
-| GAM Thin-plate | 29,252 | Splines alternativos | - |
-| GLMER | 29,301 | Solo efectos lineales | - |
-| GLM Básico | 29,713 | Sin efectos hospitalarios | - |
-
-### Factores de Éxito
-**📈 Metodología híbrida:** GAM + efectos aleatorios + distribución Gamma  
-**🔬 Validación completa:** Tests estadísticos + validación visual  
-**🎯 Interpretabilidad:** Coeficientes con significado clínico directo  
-**⚖️ Balance:** Complejidad vs interpretabilidad optimizado
 
 ---
 
