@@ -1,25 +1,24 @@
 # 🏥 Optimización de Gestión Hospitalaria
 
 ## 🎯 Objetivo
-Desarrollar modelos predictivos avanzados para optimizar la duración de estancias hospitalarias mediante análisis multimetodológico comparativo entre enfoques frecuentistas y bayesianos.
+Desarrollar modelos predictivos avanzados para optimizar la duración de estancias hospitalarias mediante análisis comparativo entre metodologías estadísticas (GLM vs GAM), identificando factores clave en 2,100 casos clínicos.
 
 ## 📂 Archivos Principales
 - **[💾 Descripción del Dataset](./data/README.md)**
-- **[🔍 Análisis Multimetodológico](./code/analisis_hospitalario.html)**
+- **[🔍 Análisis Completo (HTML)](./code/analisis_hospitalario.html)**
 - **[💼 Memoria Ejecutiva](./output/memoria_ejecutiva.md)**
-- **[📋 Modelos Comparativos](./output/comparacion_metodologias.R)**
 
 ## 💡 Principales Hallazgos
-- ✅ **60.7% variación explicada** mediante modelización GAM optimizada
-- ✅ **Metodología híbrida** - Comparación GLM vs GAM vs Bayesiano
-- ✅ **Factores clave identificados** - Edad, diagnóstico y efectos hospitalarios
-- ✅ **Validación robusta** - Múltiples enfoques confirman resultados consistentes
+- ✅ **60.7% variación explicada** con modelo GAM optimizado (B-splines)
+- ✅ **Relación no lineal** edad-estancia validada estadísticamente  
+- ✅ **Factores críticos identificados** - Diagnóstico (+144% infartos), Sexo (-30% hombres)
+- ✅ **Efectos hospitalarios** - Variabilidad significativa entre centros (15-25%)
 
 ## 🛠️ Tecnologías
-`R` • `GLM/GAM` • `JAGS` • `Modelos Bayesianos` • `Análisis Multivariante`
+`R` • `GAM (mgcv)` • `GLM/GLMER` • `Splines` • `Efectos Aleatorios`
 
 ## 🔗 Aplicaciones Potenciales
-- **Sector Sanitario:** Optimización de recursos y planificación de camas
-- **Gestión Hospitalaria:** Predicción de estancias y flujos de pacientes
-- **Análisis Actuarial:** Modelización de riesgos en seguros médicos
-- **Investigación Clínica:** Metodología replicable para estudios longitudinales
+- **Sector Sanitario:** Predicción de estancias para planificación de recursos
+- **Gestión Hospitalaria:** Optimización de ocupación de camas
+- **Sistemas de Salud:** Benchmarking entre centros hospitalarios
+- **Investigación Clínica:** Framework replicable para análisis longitudinales
