@@ -22,12 +22,12 @@
 ### 👤 **Características del Paciente**
 
 #### Efecto de la Edad (No Lineal)
-**🌀 Patrón complejo:** Relación no lineal validada (p < 0.001)  
-**💡 Interpretación:** Jóvenes y muy mayores tienen duraciones menores  
+- **🌀 Patrón complejo:** Relación no lineal validada (p < 0.001)  
+- **💡 Interpretación:** Jóvenes y muy mayores tienen duraciones menores  
 
 #### Diferencias por Sexo  
-**👨 Hombres:** **30% menos** tiempo de hospitalización vs mujeres  
-**📏 Impacto:** Reducción promedio de 3-5 días de estancia  
+- **👨 Hombres:** **30% menos** tiempo de hospitalización vs mujeres  
+- **📏 Impacto:** Reducción promedio de 3-5 días de estancia  
 
 ### 🏥 **Factores Clínicos - Diagnóstico Principal**
 
