@@ -22,14 +22,12 @@
 ### 👤 **Características del Paciente**
 
 #### Efecto de la Edad (No Lineal)
-**📊 Patrón complejo:** Relación no lineal validada (p < 0.001)  
-**🎯 Interpretación:** Jóvenes y muy mayores tienen duraciones menores  
-**📈 Significancia:** 7.02 grados de libertad efectivos (alta complejidad)
+**🌀 Patrón complejo:** Relación no lineal validada (p < 0.001)  
+**💡 Interpretación:** Jóvenes y muy mayores tienen duraciones menores  
 
 #### Diferencias por Sexo  
 **👨 Hombres:** **30% menos** tiempo de hospitalización vs mujeres  
-**📉 Impacto:** Reducción promedio de 3-5 días de estancia  
-**🔬 Robustez:** p < 0.001 (efecto consistente y significativo)  
+**📏 Impacto:** Reducción promedio de 3-5 días de estancia  
 
 ### 🏥 **Factores Clínicos - Diagnóstico Principal**
 
@@ -41,17 +39,16 @@
 
 #### Efectos Hospitalarios
 **🏥 Variabilidad significativa:** 8.48 edf entre centros (p < 0.001)  
-**📊 Diferencias:** 15-25% variación en duraciones entre hospitales  
-**🎯 Oportunidad:** Estandarización de mejores prácticas  
+**📏 Diferencias:** 15-25% variación en duraciones entre hospitales  
 
 ---
 
-## 📊 Rendimiento del Modelo Final
+## 🏆 Rendimiento del Modelo Final
 
 ### Capacidad Predictiva
-**🎯 Deviance Explicada: 60.7%** - Captura más del 60% de factores determinantes  
-**📈 R² Ajustado: 36.2%** - Nivel robusto para datos clínicos complejos  
-**✅ Escala: 0.915** - Ajuste óptimo de distribución Gamma
+** Deviance Explicada: 60.7%** - Captura más del 60% de factores determinantes  
+** R² Ajustado: 36.2%** - Nivel robusto para datos clínicos complejos  
+** Escala: 0.915** - Ajuste óptimo de distribución Gamma
 
 ---
 
