@@ -38,17 +38,15 @@
 | **🟢 Fractura** | Referencia | Base | 2-5 días |
 
 #### Efectos Hospitalarios
-**🏥 Variabilidad significativa:** 8.48 edf entre centros (p < 0.001)  
-**📏 Diferencias:** 15-25% variación en duraciones entre hospitales  
+- **🏥 Variabilidad significativa:** 8.48 edf entre centros (p < 0.001)  
+- **📏 Diferencias:** 15-25% variación en duraciones entre hospitales  
 
 ---
 
 ## 🏆 Rendimiento del Modelo Final
-
-### Capacidad Predictiva
-**Deviance Explicada: 60.7%** - Captura más del 60% de factores determinantes  
-**R² Ajustado: 36.2%** - Nivel robusto para datos clínicos complejos  
-**Escala: 0.915** - Ajuste óptimo de distribución Gamma
+- **Deviance Explicada: 60.7%** - Captura más del 60% de factores determinantes  
+- **R² Ajustado: 36.2%** - Nivel robusto para datos clínicos complejos  
+- **Escala: 0.915** - Ajuste óptimo de distribución Gamma
 
 ---
 
