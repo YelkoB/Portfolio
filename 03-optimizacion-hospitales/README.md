@@ -15,7 +15,7 @@ Desarrollar modelos predictivos avanzados para optimizar la duración de estanci
 - ✅ **Factores clave identificados** - Edad, diagnóstico y efectos hospitalarios
 - ✅ **Validación robusta** - Múltiples enfoques confirman resultados consistentes
 
-## 🔧 Tecnologías
+## 🛠️ Tecnologías
 `R` • `GLM/GAM` • `JAGS` • `Modelos Bayesianos` • `Análisis Multivariante`
 
 ## 🔗 Aplicaciones Potenciales
