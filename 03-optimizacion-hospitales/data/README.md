@@ -10,10 +10,10 @@
 ## 📋 Variables del Dataset
 
 ### 🎯 **Variable Objetivo**
-- **DuracionHospitalizacion:** Numérico → Días de estancia hospitalaria
-- **Rango**: 1-20 días aproximadamente
+- **DuracionHospitalizacion:** Numérico → horas de estancia hospitalaria
+- **Rango**: 1-20 horas aproximadamente
 - **Distribución**: Positiva asimétrica (Gamma)
-- **Media**: ~7-8 días de estancia promedio
+- **Media**: ~7-8 horas de estancia promedio
 
 ### 👤 **Características del Paciente**
 - **Edad:** Numérico → Edad del paciente en años
