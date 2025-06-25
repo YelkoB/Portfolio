@@ -14,7 +14,7 @@ Desarrollar un modelo predictivo robusto para el consumo eléctrico nacional aus
 - ✅ **Forecasting a 3 años** con intervalos de confianza validados
 - ✅ **Variables de intervención** capturan eventos extraordinarios automáticamente
 
-## 🔧 Tecnologías
+## 🛠️ Tecnologías
 `R` • `Modelos ARIMA` • `Series Temporales` • `Forecasting`
 
 ## 🔗 Aplicaciones Potenciales
