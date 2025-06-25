@@ -62,7 +62,7 @@
 
 ## 📂 Documentación Técnica
 
-- 💾 **[Descripción de Datos](./data/README.md)**
-- 🔍 **[Análisis Completo (HTML)](./code/analisis_hospitalario.html)**
+- 💾 **[Descripción de Datos](../data/README.md)**
+- 🔍 **[Análisis Completo (HTML)](../code/analisis_hospitalario.html)**
 
 ---
