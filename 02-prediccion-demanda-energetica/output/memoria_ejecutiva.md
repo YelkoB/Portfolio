@@ -58,6 +58,6 @@
 
 ## 📂 Documentación Técnica
 - 💾 **[Descripción de Datos](../data/README.md)**
-- 🔍 **[Análisis Completo (HTML)](../code/analisis_arima.html)**  
+- 🔍 **[Análisis Completo (HTML)](../code/analisis_series_temporales.html)**  
 
 ---
