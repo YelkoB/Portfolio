@@ -7,7 +7,7 @@
 ## 📈 Resultados del Modelo
 
 ### Evolución del Consumo Eléctrico
-![Evolución Temporal](imagen_placeholder)
+![Evolución Temporal](https://github.com/user-attachments/assets/29c1e4b2-abfe-49cd-ac3d-39f2220e23e1)
 *Consumo eléctrico mensual en Austria mostrando patrones estacionales marcados (picos invernales) y la detección automática de eventos extraordinarios como la caída del COVID-19 en abril 2020.*
 
 ### Precisión Excepcional del Modelo
@@ -46,7 +46,7 @@
 ## 🔮 Predicciones Estratégicas (2024-2026)
 
 ### Forecasting a 3 Años Vista
-![Predicciones ARIMA](imagen_placeholder)
+![Predicciones ARIMA](https://github.com/user-attachments/assets/ea1da166-9f16-4817-849c-8b454a9f020e)
 *Predicciones mensuales con intervalos de confianza. La estacionalidad marcada se mantiene con picos invernales y valles estivales. Los intervalos de confianza se amplían gradualmente hacia el futuro.*
 
 ### Consumo Anual Proyectado
@@ -60,33 +60,6 @@
 - **📊 Estabilidad:** Consumo se mantiene estable alrededor de 64,000 GWh anuales
 - **📈 Crecimiento mínimo:** Incremento muy gradual por mejoras en eficiencia energética
 - **🔄 Patrones estacionales:** Se mantienen los picos y valles históricos
-
----
-
-## 💡 Capacidades del Sistema Predictivo
-
-### 🚨 **Detección Automática de Crisis**
-El modelo tiene capacidad demostrada para identificar eventos disruptivos (como COVID-19) sin conocimiento previo, permitiendo:
-- **⚡ Respuesta rápida:** Ajuste automático a nuevas condiciones
-- **🎯 Cuantificación:** Medición precisa del impacto de eventos extraordinarios
-- **📊 Planificación:** Adaptación de estrategias en tiempo real
-
-
-
----
-
-## 🎯 Valor Estratégico
-
-### ✅ **Fortalezas Validadas**
-- **Precisión excepcional** para forecasting mensual del sector energético
-- **Detección automática** de eventos disruptivos sin supervisión humana  
-- **Estabilidad proyectada** del consumo nacional hasta 2026
-- **Herramienta robusta** para toma de decisiones empresariales
-
-### 📊 **Aplicabilidad Inmediata**
-- **2024:** Alta confiabilidad para planificación anual
-- **2025:** Adecuada para estrategias a medio plazo  
-- **2026:** Orientación válida para planificación estratégica
 
 ---
 
