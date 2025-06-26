@@ -21,8 +21,8 @@
 ### 🦠 **Impacto COVID-19 (Detección Sin Supervisión)**
 - **Marzo 2020:** Reducción del **3.3%** - Inicio de restricciones  
 - **Abril 2020:** Caída drástica del **9.9%** - Confinamiento total  
-- **Significancia estadística:** p < 0.001 (altamente confiable)  
-- 
+- **Significancia estadística:** p < 0.001 (altamente confiable)
+   
 ### 📊 **Otros Eventos Significativos**
 - **Febrero 2017:** Reducción del 3.1% - Crisis energética Care Energy  
 - **Abril 2018:** Descenso del 4.2% - Nueva estrategia energética nacional  
