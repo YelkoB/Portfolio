@@ -45,6 +45,10 @@
 
 ## 🔮 Predicciones Estratégicas (2024-2026)
 
+### Forecasting a 3 Años Vista
+![Predicciones ARIMA](imagen_placeholder)
+*Predicciones mensuales con intervalos de confianza. La estacionalidad marcada se mantiene con picos invernales y valles estivales. Los intervalos de confianza se amplían gradualmente hacia el futuro.*
+
 ### Consumo Anual Proyectado
 | Año | Consumo Estimado | Rango Esperado | Confianza |
 |-----|-----------------|----------------|-----------|
@@ -67,15 +71,7 @@ El modelo tiene capacidad demostrada para identificar eventos disruptivos (como 
 - **🎯 Cuantificación:** Medición precisa del impacto de eventos extraordinarios
 - **📊 Planificación:** Adaptación de estrategias en tiempo real
 
-### 📈 **Aplicaciones Empresariales**
-#### Trading Energético
-- **Compras estratégicas:** Precisión del 98.4% para optimizar adquisiciones
-- **Gestión de riesgos:** Anticipación de fluctuaciones de demanda
 
-#### Planificación Operativa  
-- **Capacidad instalada:** Previsión robusta para dimensionamiento
-- **Mantenimiento:** Programación óptima según demanda esperada
-- **Inversiones:** Soporte cuantitativo para decisiones estratégicas
 
 ---
 
