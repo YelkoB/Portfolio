@@ -19,11 +19,11 @@
 **Tecnologías**: R, ARIMA, Series Temporales, Forecast, Validación Estadística  
 
 ### 3. [🏥 Optimización de Gestión Hospitalaria](./03-optimizacion-hospitales/)
-**Contexto**: Análisis de 2,100 casos con múltiples metodologías estadísticas  
-**Metodología**: GLM, GAM y modelos bayesianos con comparación de enfoques  
-**Resultados**: 60.7% variación explicada, identificación de factores clave  
-**Competencias**: Modelos lineales generalizados, inferencia bayesiana, comparación de metodologías  
-**Tecnologías**: R, GLM, GAM, JAGS, Modelos Bayesianos  
+**Contexto**: Análisis de 2,100 casos con enfoque multimetodológico comparativo  
+**Metodología**: GLM vs GAM con efectos mixtos y splines para modelización no lineal  
+**Resultados**: 60.7% variación explicada, factores predictivos clave identificados  
+**Competencias**: Modelos lineales generalizados, GAM, efectos aleatorios, validación cruzada  
+**Tecnologías**: R, GLM, GAM, splines, mgcv, lme4
 
 ## 📈 Competencias Técnicas
 - **Análisis de Datos:** R, Python, SQL
