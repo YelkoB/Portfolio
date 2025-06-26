@@ -47,14 +47,7 @@
 
 ### Forecasting a 3 Años Vista
 ![Predicciones ARIMA](https://github.com/user-attachments/assets/ea1da166-9f16-4817-849c-8b454a9f020e)
-*Predicciones mensuales con intervalos de confianza. La estacionalidad marcada se mantiene con picos invernales y valles estivales. Los intervalos de confianza se amplían gradualmente hacia el futuro.*
-
-### Consumo Anual Proyectado
-| Año | Consumo Estimado | Rango Esperado | Confianza |
-|-----|-----------------|----------------|-----------|
-| **2024** | **62,954 GWh** | 60,255 - 65,777 | ✅ Alta |
-| **2025** | **63,616 GWh** | 60,437 - 66,963 | ✅ Buena |
-| **2026** | **63,678 GWh** | 60,352 - 67,188 | ⚠️ Orientativa |
+*Comparación de predicciones: ARIMA (izquierda, rojo) mantiene estacionalidad marcada con intervalos precisos, mientras que ETS Inverso (derecha, azul) presenta patrones más suavizados con mayor incertidumbre hacia el futuro. El modelo ARIMA preserva mejor los patrones históricos estacionales.*
 
 ### Tendencias Identificadas
 - **📊 Estabilidad:** Consumo se mantiene estable alrededor de 64,000 GWh anuales
