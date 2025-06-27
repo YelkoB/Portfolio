@@ -32,4 +32,4 @@
 - **Big Data:** Manejo de datasets complejos y optimización de algoritmos
 
 ## 📞 Contacto
-📧 yelko.bejarano@gmail.com | 📱 (+34) 674 798 669 | 🔗 [LinkedIn](enlace)
+📧 yelko.bejarano@gmail.com | 📱 (+34) 674 798 669 | 🔗 [LinkedIn](https://www.linkedin.com/in/yelko-bejarano-colina-8bb753354/)
