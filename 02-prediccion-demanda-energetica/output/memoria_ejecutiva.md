@@ -50,8 +50,7 @@
 *Comparación de predicciones: ARIMA (izquierda, rojo) mantiene estacionalidad marcada con intervalos precisos, mientras que ETS Inverso (derecha, azul) presenta patrones más suavizados con mayor incertidumbre hacia el futuro. El modelo ARIMA preserva mejor los patrones históricos estacionales.*
 
 ### Tendencias Identificadas
-- **📊 Estabilidad:** Consumo se mantiene estable alrededor de 64,000 GWh anuales
-- **📈 Crecimiento mínimo:** Incremento muy gradual por mejoras en eficiencia energética
+- **📈 Crecimiento mínimo:** Incremento muy gradual
 - **🔄 Patrones estacionales:** Se mantienen los picos y valles históricos
 
 ---
