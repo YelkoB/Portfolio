@@ -10,9 +10,9 @@ Desarrollar un modelo predictivo robusto para el consumo eléctrico nacional aus
 
 ## 💡 Principales Hallazgos
 - ✅ **MAPE 1.6%** - Precisión superior al 98% en predicciones
-- ✅ **Detección automática** de impactos COVID-19 sin supervisión previa
-- ✅ **Forecasting a 3 años** con intervalos de confianza validados
 - ✅ **Variables de intervención** capturan eventos extraordinarios automáticamente
+- ✅ **Forecasting a 3 años** con intervalos de confianza validados
+- ✅ **Estabilidad proyectada** con un ligero aumento del consumo
 
 ## 🛠️ Tecnologías
 `R` • `Modelos ARIMA` • `Series Temporales` • `Forecasting`
