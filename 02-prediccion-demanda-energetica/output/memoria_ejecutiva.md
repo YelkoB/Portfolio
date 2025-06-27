@@ -22,7 +22,7 @@
 ### 📅 **Patrones Temporales**
 #### Estacionalidad Marcada
 - **❄️ Invierno:** Picos de consumo por calefacción (noviembre-febrero)
-- **☀️ Verano:** Consumo reducido (junio-agosto)
+- **☀️ Verano:** Consumo reducido (junio-agosto) por ser meses festivos con menor actividad industrial
 - **🔄 Persistencia:** El consumo de un mes influye fuertemente en el siguiente
 
 #### Actividad Económica
