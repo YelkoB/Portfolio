@@ -27,8 +27,8 @@
 
 ## 📈 Competencias Técnicas
 - **Análisis de Datos:** R, Python, SQL
-- **Visualización:** ggplot2, Power BI, Plotly
-- **Modelización:** Machine Learning, Series Temporales, Análisis Bayesiano
+- **Visualización:** ggplot2, Power BI
+- **Modelización:** Machine Learning, Series Temporales, GLM, GAM
 - **Big Data:** Manejo de datasets complejos y optimización de algoritmos
 
 ## 📞 Contacto
