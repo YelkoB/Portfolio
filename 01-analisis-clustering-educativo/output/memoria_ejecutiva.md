@@ -46,6 +46,5 @@
 
 - 💾 **[Descripción de Datos](../data/README.md)**
 - 🔍 **[Análisis Completo (HTML)](../code/analisis_clustering.html)**
-- 📄 **[Reporte Técnico (PDF)](./output/analisis-clustering.pdf)**
 
 ---
