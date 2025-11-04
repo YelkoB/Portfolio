@@ -19,11 +19,18 @@
 **Tecnologías**: R, ARIMA, Series Temporales, Forecast, Validación Estadística  
 
 ### 3. [🏥 Optimización de Gestión Hospitalaria](./03-optimizacion-hospitales/)
-**Contexto**: Análisis de 2,100 casos con enfoque multimetodológico comparativo  
-**Metodología**: GLM vs GAM con efectos mixtos y splines para modelización no lineal  
-**Resultados**: 60.7% variación explicada, factores predictivos clave identificados  
-**Competencias**: Modelos lineales generalizados, GAM, efectos aleatorios, validación cruzada  
+**Contexto**: Análisis de 2,100 casos con enfoque multimetodológico comparativo
+**Metodología**: GLM vs GAM con efectos mixtos y splines para modelización no lineal
+**Resultados**: 60.7% variación explicada, factores predictivos clave identificados
+**Competencias**: Modelos lineales generalizados, GAM, efectos aleatorios, validación cruzada
 **Tecnologías**: R, GLM, GAM, splines, mgcv, lme4
+
+### 4. [⚙️ Forecasting de Demanda Urgente en Manufactura](./04-forecasting-demanda-urgente-manufactura/)
+**Contexto**: Sistema predictivo para anticipar pedidos urgentes en manufactura
+**Metodología**: Forecasting multi-modelo (ARIMA, Prophet, XGBoost) con validación rigurosa
+**Resultados**: Framework comparativo con métricas de accuracy y valor de negocio (ROI)
+**Competencias**: Series temporales, Machine Learning, feature engineering, optimización operativa
+**Tecnologías**: Python, Scikit-learn, Prophet, XGBoost, Statsmodels, Pandas
 
 ## 📈 Competencias Técnicas
 - **Análisis de Datos:** R, Python, SQL
