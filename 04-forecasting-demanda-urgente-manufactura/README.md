@@ -25,6 +25,20 @@ Desarrollar un sistema predictivo multi-modelo para anticipar pedidos urgentes e
 - **[📈 results/figures/](./results/figures/)** - Visualizaciones
 - **[💼 output/](./output/)** - Memoria ejecutiva y reportes
 
+### 📦 Manejo de Datos
+> ⚠️ **Nota importante:** Los archivos CSV de datos no están incluidos en el repositorio por su tamaño.
+
+**Los datos se mantienen localmente en:**
+- `data/raw/*.csv` - Datos originales (excluidos de Git)
+- `data/processed/*.csv` - Datos procesados (excluidos de Git)
+- `data/simulated/*.csv` - Urgencias sintéticas (excluidos de Git)
+
+**Configuración:**
+- Los archivos CSV están incluidos en `.gitignore` para evitar problemas de tamaño
+- El código espera encontrar los archivos en las carpetas correspondientes localmente
+- La documentación del esquema de datos está en [data/README.md](./data/README.md)
+- Para reproducir el análisis, coloca tus archivos CSV en `data/raw/`
+
 ## 🔬 Metodología
 
 ### Fases de Desarrollo

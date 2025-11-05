@@ -1,0 +1,91 @@
+# ============================================
+# DATA FILES
+# ============================================
+# Excluir archivos de datos grandes (CSV, Excel, etc.)
+*.csv
+*.xlsx
+*.xls
+*.parquet
+*.feather
+
+# Permitir archivos de ejemplo pequeños si es necesario (descomentar si aplica)
+# !**/sample_*.csv
+# !**/example_*.csv
+
+# ============================================
+# PYTHON
+# ============================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# ============================================
+# R
+# ============================================
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+
+# ============================================
+# OUTPUTS & RESULTS
+# ============================================
+# Archivos temporales y outputs intermedios
+**/results/temp_*
+**/output/temp_*
+**/.DS_Store
+.DS_Store
+
+# Modelos entrenados (si son muy grandes)
+*.pkl
+*.joblib
+*.h5
+*.pt
+*.pth
+
+# ============================================
+# IDE & EDITORS
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ============================================
+# SYSTEM
+# ============================================
+Thumbs.db
+.DS_Store
+Desktop.ini
+
+# ============================================
+# LOGS
+# ============================================
+*.log
+logs/
+
+# ============================================
+# SENSITIVE DATA
+# ============================================
+.env
+*.key
+credentials.json
+secrets.yaml
