@@ -32,7 +32,10 @@ FORECAST_HORIZON = [1, 2, 4]  # Horizontes de predicción en semanas
 # ============================================
 # PARÁMETROS DE SIMULACIÓN DE URGENCIAS
 # ============================================
-URGENCY_THRESHOLD = 1.5  # Múltiplo de MA4 para considerar urgencia
+# Threshold basado en desviaciones estándar
+URGENCY_STD_THRESHOLD = 1.5  # Número de desviaciones estándar sobre la media
+# Urgencia = ventas > (media + URGENCY_STD_THRESHOLD * std)
+
 SYNTHETIC_PROPORTION = 0.30  # Proporción de datos sintéticos
 BASE_PROB_URGENT = 0.08  # Probabilidad base de urgencia
 SEASONAL_AMPLITUDE = 0.04  # Amplitud de variación estacional
