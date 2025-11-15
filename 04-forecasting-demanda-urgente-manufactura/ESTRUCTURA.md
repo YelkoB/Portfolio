@@ -7,8 +7,9 @@
 │
 ├── 📁 code/                          # Scripts de análisis
 │   ├── config.py                     # Configuración global
-│   ├── 00_generar_datos_sinteticos.py    # Fase 0: Generación de datos
-│   └── 01_deteccion_urgencias_predecibles.py  # Fase 1: Detección urgencias
+│   ├── 00_setup_datos_m5.py         # Fase 0A: Setup dataset M5
+│   ├── 01_generar_datos_sinteticos.py    # Fase 0B: Alternativa sintética
+│   └── 02_deteccion_urgencias_predecibles.py  # Fase 1: Detección urgencias
 │
 ├── 📁 data/                          # Datos del proyecto
 │   ├── processed/                    # Datos procesados
@@ -19,10 +20,11 @@
 │
 ├── 📁 results/                       # Resultados del análisis
 │   └── figures/                     # Visualizaciones
-│       ├── 01_descomposicion_temporal.png
-│       ├── 01_deteccion_urgencias.png
-│       ├── 01_patrones_temporales_urgencias.png
-│       └── 01_distribucion_urgente_vs_normal.png
+│       ├── 00_serie_temporal_m5.png  # (si se usa M5)
+│       ├── 02_descomposicion_temporal.png
+│       ├── 02_deteccion_urgencias.png
+│       ├── 02_patrones_temporales_urgencias.png
+│       └── 02_distribucion_urgente_vs_normal.png
 │
 ├── README.md                         # Documentación principal
 ├── ESTRUCTURA.md                     # Este archivo
@@ -31,33 +33,80 @@
 
 ## Flujo de Trabajo
 
-### 📍 Fase 0: Generación de Datos
-**Script:** `00_generar_datos_sinteticos.py`
+### ⚙️ DOS OPCIONES DE SETUP
 
-**Input:** Ninguno (genera datos desde cero)
+El proyecto soporta DOS fuentes de datos:
+
+**OPCIÓN A: Dataset M5 (Recomendado)**
+- Dataset real de Walmart (Kaggle)
+- 30K productos, 1,941 días, 10 tiendas
+- Ejecutar: `00_setup_datos_m5.py`
+- Requiere descarga previa de Kaggle
+
+**OPCIÓN B: Datos Sintéticos (Alternativa)**
+- Datos generados con patrones predecibles
+- 278 semanas, tendencia + estacionalidad
+- Ejecutar: `01_generar_datos_sinteticos.py`
+- No requiere descarga externa
+
+⚠️ **Importante:** Ejecuta SOLO UNA de las dos opciones. Ambas generan `sales_weekly.csv`.
+
+---
+
+### 📍 Fase 0A: Setup Dataset M5 (Opción A)
+**Script:** `00_setup_datos_m5.py`
+
+**Input (externo - NO incluido):**
+- `data/raw/sales_train_evaluation.csv` (60 MB)
+- `data/raw/calendar.csv` (1 MB)
+- `data/raw/sell_prices.csv` (145 MB)
 
 **Output:**
-- `data/processed/sales_weekly.csv` - 278 semanas de datos
-- `data/processed/sales_components.csv` - Componentes (tendencia, estacionalidad, etc.)
+- `data/processed/sales_weekly.csv` - Ventas semanales M5
+- `results/figures/00_serie_temporal_m5.png`
 
 **Descripción:**
-Genera datos sintéticos de ventas con:
+Procesa el dataset M5 de Kaggle:
+- Carga 30,490 productos × 1,941 días
+- Transforma formato ancho → largo
+- Agrega a nivel semanal
+- Merge con calendario y precios
+
+**Descarga M5:**
+https://www.kaggle.com/c/m5-forecasting-accuracy/data
+
+---
+
+### 📍 Fase 0B: Generación Datos Sintéticos (Opción B)
+**Script:** `01_generar_datos_sinteticos.py`
+
+**Input:** Ninguno (genera desde cero)
+
+**Output:**
+- `data/processed/sales_weekly.csv` - 278 semanas sintéticas
+- `data/processed/sales_components.csv` - Componentes descompuestos
+
+**Descripción:**
+Genera datos sintéticos con patrones predecibles:
 - Tendencia creciente (118% en 5 años)
-- Estacionalidad anual (picos en verano/navidad)
+- Estacionalidad anual (picos verano/navidad)
 - Estacionalidad mensual (fin de mes)
-- Picos predecibles en meses/semanas específicas
+- Picos predecibles controlados
 - Ruido aleatorio
 
 ---
 
 ### 📍 Fase 1: Detección de Urgencias Predecibles
-**Script:** `01_deteccion_urgencias_predecibles.py`
+**Script:** `02_deteccion_urgencias_predecibles.py`
 
 **Input:** `data/processed/sales_weekly.csv`
 
 **Output:**
 - `data/simulated/urgencias_weekly.csv` - Dataset con urgencias detectadas
-- 4 visualizaciones en `results/figures/`
+- `results/figures/02_descomposicion_temporal.png`
+- `results/figures/02_deteccion_urgencias.png`
+- `results/figures/02_patrones_temporales_urgencias.png`
+- `results/figures/02_distribucion_urgente_vs_normal.png`
 
 **Descripción:**
 Detecta urgencias usando dos criterios:
@@ -120,18 +169,43 @@ Detecta urgencias usando dos criterios:
 
 ## Cómo Ejecutar
 
-### 1. Generar Datos
+### OPCIÓN A: Con Dataset M5
+
+#### 1. Descargar M5 de Kaggle
+Descarga y coloca en `data/raw/`:
+- sales_train_evaluation.csv
+- calendar.csv
+- sell_prices.csv
+
+#### 2. Procesar M5
 ```bash
 cd 04-forecasting-demanda-urgente-manufactura
-python code/00_generar_datos_sinteticos.py
+python code/00_setup_datos_m5.py
 ```
 
-### 2. Detectar Urgencias
+#### 3. Detectar Urgencias
 ```bash
-python code/01_deteccion_urgencias_predecibles.py
+python code/02_deteccion_urgencias_predecibles.py
 ```
 
-### 3. Verificar Outputs
+---
+
+### OPCIÓN B: Con Datos Sintéticos
+
+#### 1. Generar Datos
+```bash
+cd 04-forecasting-demanda-urgente-manufactura
+python code/01_generar_datos_sinteticos.py
+```
+
+#### 2. Detectar Urgencias
+```bash
+python code/02_deteccion_urgencias_predecibles.py
+```
+
+---
+
+### Verificar Outputs
 ```bash
 ls data/processed/           # Ver datos generados
 ls data/simulated/           # Ver urgencias detectadas
@@ -143,8 +217,9 @@ ls results/figures/          # Ver visualizaciones
 ## Estado Actual
 
 ✅ **Completado:**
-- Fase 0: Generación de datos
-- Fase 1: Detección de urgencias
+- Fase 0A: Setup M5 (script listo, requiere descarga externa)
+- Fase 0B: Generación de datos sintéticos
+- Fase 1: Detección de urgencias predecibles
 
 ⏳ **Pendiente:**
 - Fase 2: Feature Engineering

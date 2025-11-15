@@ -1,5 +1,5 @@
 """
-01. Detección de Urgencias Predecibles
+02. Detección de Urgencias Predecibles
 =======================================
 
 CONCEPTO CLAVE:
@@ -109,8 +109,8 @@ axes[3].set_ylabel('Unidades')
 axes[3].grid(True, alpha=0.3)
 
 plt.tight_layout()
-plt.savefig(FIGURES / '01_descomposicion_temporal.png', dpi=100, bbox_inches='tight')
-print(f"✓ Guardado: {FIGURES / '01_descomposicion_temporal.png'}")
+plt.savefig(FIGURES / '02_descomposicion_temporal.png', dpi=100, bbox_inches='tight')
+print(f"✓ Guardado: {FIGURES / '02_descomposicion_temporal.png'}")
 plt.close()
 
 # Estadísticas de componentes
@@ -236,8 +236,8 @@ ax.legend(loc='upper left', fontsize=10)
 ax.grid(True, alpha=0.3)
 plt.xticks(rotation=45)
 plt.tight_layout()
-plt.savefig(FIGURES / '01_deteccion_urgencias.png', dpi=100, bbox_inches='tight')
-print(f"✓ Guardado: {FIGURES / '01_deteccion_urgencias.png'}")
+plt.savefig(FIGURES / '02_deteccion_urgencias.png', dpi=100, bbox_inches='tight')
+print(f"✓ Guardado: {FIGURES / '02_deteccion_urgencias.png'}")
 plt.close()
 
 # ============================================================================
@@ -302,8 +302,8 @@ axes[1].tick_params(axis='x', rotation=0)
 axes[1].grid(True, alpha=0.3, axis='y')
 
 plt.tight_layout()
-plt.savefig(FIGURES / '01_patrones_temporales_urgencias.png', dpi=100, bbox_inches='tight')
-print(f"✓ Guardado: {FIGURES / '01_patrones_temporales_urgencias.png'}")
+plt.savefig(FIGURES / '02_patrones_temporales_urgencias.png', dpi=100, bbox_inches='tight')
+print(f"✓ Guardado: {FIGURES / '02_patrones_temporales_urgencias.png'}")
 plt.close()
 
 # ============================================================================
@@ -360,8 +360,8 @@ axes[1].legend()
 axes[1].grid(True, alpha=0.3)
 
 plt.tight_layout()
-plt.savefig(FIGURES / '01_distribucion_urgente_vs_normal.png', dpi=100, bbox_inches='tight')
-print(f"✓ Guardado: {FIGURES / '01_distribucion_urgente_vs_normal.png'}")
+plt.savefig(FIGURES / '02_distribucion_urgente_vs_normal.png', dpi=100, bbox_inches='tight')
+print(f"✓ Guardado: {FIGURES / '02_distribucion_urgente_vs_normal.png'}")
 plt.close()
 
 # ============================================================================
