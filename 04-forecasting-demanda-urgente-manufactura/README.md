@@ -11,14 +11,11 @@ Desarrollar un sistema predictivo multi-modelo para anticipar pedidos urgentes e
 - **[📁 data/simulated/](./data/simulated/)** - Urgencias sintéticas simuladas
 
 ### Análisis
-- **[📓 code/](./code/)** - Notebooks de análisis por fase:
-  - `00_introduccion.ipynb` - Overview del proyecto
-  - `01_setup_datos.ipynb` - Carga y preparación inicial
-  - `02_simulacion_urgencias_eda.ipynb` - Generación urgencias + EDA
-  - `03_feature_engineering.ipynb` - Ingeniería de características
-  - `04-08_modelizacion.ipynb` - Modelos comparativos
-  - `09_validacion.ipynb` - Validación rigurosa con ground truth
-  - `10_valor_operativo.ipynb` - ROI y métricas de negocio
+- **[📓 code/](./code/)** - Scripts de análisis por fase:
+  - `config.py` - Configuración global del proyecto
+  - `00_generar_datos_sinteticos.py` - Generación de datos con patrones predecibles
+  - `01_deteccion_urgencias_predecibles.py` - Detección y validación de urgencias
+  - *(Próximas fases: feature engineering, modelización, validación)*
 
 ### Resultados
 - **[📊 results/](./results/)** - Outputs y métricas de modelos
@@ -50,15 +47,14 @@ Desarrollar un sistema predictivo multi-modelo para anticipar pedidos urgentes e
 - **Criterio Híbrido**: Combinación de ambos (A OR B)
 
 ### Fases de Desarrollo
-| Fase | Objetivo | Duración |
-|------|----------|----------|
-| **1. Setup** | Generación de datos sintéticos con patrones predecibles | 2-3h |
-| **2. Detección + EDA** | Detectar urgencias predecibles y validar patrones | 4-5h |
-| **3. Feature Engineering** | Crear variables predictivas temporales | 3-4h |
-| **4. Modelización** | Comparación multi-modelo (ARIMA, Prophet, ML) | 6-7h |
-| **5. Validación** | Validación con ground truth controlado | 3-4h |
-| **6. Valor Operativo** | Cuantificación de ROI y métricas de negocio | 2-3h |
-| **7. Documentación** | Memoria ejecutiva y presentación | 2-3h |
+| Fase | Script | Objetivo | Estado |
+|------|--------|----------|--------|
+| **0. Setup** | `00_generar_datos_sinteticos.py` | Generación de datos sintéticos con patrones predecibles | ✅ Completado |
+| **1. Detección + EDA** | `01_deteccion_urgencias_predecibles.py` | Detectar urgencias predecibles y validar patrones | ✅ Completado |
+| **2. Feature Engineering** | `02_feature_engineering.py` | Crear variables predictivas temporales | ⏳ Pendiente |
+| **3. Modelización** | `03_modelizacion.py` | Comparación multi-modelo (ARIMA, Prophet, ML) | ⏳ Pendiente |
+| **4. Validación** | `04_validacion.py` | Validación con ground truth controlado | ⏳ Pendiente |
+| **5. Valor Operativo** | `05_valor_operativo.py` | Cuantificación de ROI y métricas de negocio | ⏳ Pendiente |
 
 ### Modelos Evaluados
 - **ARIMA/SARIMA** - Baseline estadístico para series temporales
@@ -106,7 +102,7 @@ RANDOM_SEED = 42
 
 ## 📈 Principales Hallazgos
 
-### Fase 2: Detección de Urgencias Predecibles
+### Fase 1: Detección de Urgencias Predecibles ✅
 ✅ **Urgencias detectadas: 83 semanas (29.9%)**
 - Solo Criterio A (percentil): 76 semanas
 - Solo Criterio B (crecimiento): 2 semanas
