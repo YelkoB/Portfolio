@@ -41,11 +41,19 @@ Desarrollar un sistema predictivo multi-modelo para anticipar pedidos urgentes e
 
 ## 🔬 Metodología
 
+### Concepto Clave
+**"Urgencias Predecibles"**: El comprador percibe ciertos pedidos como urgencias impredecibles, pero en realidad siguen patrones estacionales y de tendencia que SÍ son predecibles mediante análisis temporal.
+
+### Criterios de Detección de Urgencias
+- **Criterio A (Percentil Móvil)**: Top 15% de ventas en ventana de 12 semanas
+- **Criterio B (Crecimiento Acelerado)**: Crecimiento >12% vs semana anterior
+- **Criterio Híbrido**: Combinación de ambos (A OR B)
+
 ### Fases de Desarrollo
 | Fase | Objetivo | Duración |
 |------|----------|----------|
-| **1. Setup** | Carga de datos y configuración | 4-5h |
-| **2. Simulación + EDA** | Generar urgencias sintéticas y análisis exploratorio | 5-6h |
+| **1. Setup** | Generación de datos sintéticos con patrones predecibles | 2-3h |
+| **2. Detección + EDA** | Detectar urgencias predecibles y validar patrones | 4-5h |
 | **3. Feature Engineering** | Crear variables predictivas temporales | 3-4h |
 | **4. Modelización** | Comparación multi-modelo (ARIMA, Prophet, ML) | 6-7h |
 | **5. Validación** | Validación con ground truth controlado | 3-4h |
@@ -74,9 +82,15 @@ Desarrollar un sistema predictivo multi-modelo para anticipar pedidos urgentes e
 
 ### Variables Clave
 ```python
+# Detección de urgencias predecibles
+URGENCY_PERCENTILE = 85  # Top 15% en ventana móvil
+PERCENTILE_WINDOW = 12  # 12 semanas (~3 meses)
+URGENCY_GROWTH_THRESHOLD = 0.12  # 12% crecimiento semanal
+USE_HYBRID_CRITERIA = True  # Criterio A OR B
+
+# Modelización
 TRAIN_RATIO = 0.80
 FORECAST_HORIZON = [1, 2, 4]  # semanas
-URGENCY_THRESHOLD = 1.5  # múltiplo MA4
 AGGREGATION = 'weekly'
 RANDOM_SEED = 42
 ```
@@ -91,7 +105,20 @@ RANDOM_SEED = 42
 `Python` • `Pandas` • `Scikit-learn` • `Statsmodels` • `Prophet` • `XGBoost` • `Matplotlib` • `Seaborn`
 
 ## 📈 Principales Hallazgos
-> 🔄 *En desarrollo - Se actualizará con resultados de cada fase*
+
+### Fase 2: Detección de Urgencias Predecibles
+✅ **Urgencias detectadas: 83 semanas (29.9%)**
+- Solo Criterio A (percentil): 76 semanas
+- Solo Criterio B (crecimiento): 2 semanas
+- Ambos criterios: 5 semanas
+
+✅ **Patrones estacionales confirmados:**
+- Concentración en meses: Marzo, Abril, Mayo (primavera)
+- Concentración en semanas: 3ra y 4ta semana del mes
+- Test Chi-cuadrado: p < 0.0001 (NO distribución uniforme)
+
+✅ **Conclusión validada:**
+Las urgencias percibidas como impredecibles SÍ muestran patrones predecibles mediante análisis temporal
 
 ## 🔗 Aplicaciones Potenciales
 - **Manufactura:** Optimización de capacidad y planificación de producción

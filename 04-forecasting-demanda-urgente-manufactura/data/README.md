@@ -18,30 +18,39 @@
 - `test_set.csv` - Conjunto de prueba (10%)
 
 ### `/simulated/`
-**Urgencias sintéticas generadas**
-- `urgencias_synthetic.csv` - Urgencias simuladas con ground truth
-- `urgencias_features.csv` - Urgencias con features para modelado
-- Configuración: threshold=1.5, proportion=0.30
+**Urgencias predecibles detectadas**
+- `urgencias_weekly.csv` - Dataset con urgencias detectadas (criterios A y B)
+- Configuración:
+  - Criterio A: Percentil 85 móvil (ventana 12 semanas)
+  - Criterio B: Crecimiento >12% semanal
+  - Híbrido: A OR B
 
 ## Esquema de Datos
-
-### Ventas Históricas (raw)
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `date` | datetime | Fecha de la transacción |
-| `product_id` | string | Identificador del producto |
-| `quantity` | int | Cantidad vendida |
-| `is_urgent` | bool | Flag de pedido urgente |
-| `lead_time` | int | Días de entrega |
 
 ### Dataset Procesado (weekly)
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
-| `week_num` | int | Número de semana (índice) |
+| `week_id` | int | Identificador de semana (YYWW) |
 | `week_start` | datetime | Fecha inicio de semana |
-| `total_sales` | float | Ventas totales semanales |
-| `urgent_sales` | float | Ventas urgentes semanales |
-| `urgent_ratio` | float | Proporción de urgencias |
+| `week_num` | int | Número de semana secuencial (0-277) |
+| `year` | int | Año |
+| `month` | int | Mes (1-12) |
+| `quarter` | int | Trimestre (1-4) |
+| `week_of_year` | int | Semana del año (1-52) |
+| `week_of_month` | int | Semana del mes (1-5) |
+| `total_sales` | int | Ventas totales semanales (unidades) |
+| `total_revenue` | float | Revenue total ($) |
+| `avg_price` | float | Precio promedio unitario |
+
+### Dataset con Urgencias (simulated/urgencias_weekly.csv)
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| *(todos los campos anteriores)* | - | Campos base del dataset procesado |
+| `percentile_threshold` | float | Umbral percentil móvil (P85 en 12w) |
+| `growth_rate` | float | Tasa de crecimiento semanal |
+| `urgent_criterio_a` | int | Urgencia detectada por Criterio A (0/1) |
+| `urgent_criterio_b` | int | Urgencia detectada por Criterio B (0/1) |
+| `is_urgent` | int | Urgencia final (A OR B) (0/1) |
 
 ### Features Temporales
 | Campo | Tipo | Descripción |
@@ -62,14 +71,25 @@
 - ✅ Splits temporales sin data leakage
 
 ### Estadísticas Descriptivas
-> 🔄 *Se actualizará después de Fase 1*
+
+**Dataset generado (sales_weekly.csv):**
+- Total semanas: 278 (~5.3 años)
+- Período: 2011-01-01 a 2016-04-23
+- Ventas promedio: 291,233 unidades/semana
+- Desviación estándar: 70,292 unidades
+- Coef. variación: 24.1%
+
+**Urgencias detectadas (urgencias_weekly.csv):**
+- Total urgencias: 83 semanas (29.9%)
+- Solo Criterio A: 76 semanas
+- Solo Criterio B: 2 semanas
+- Ambos criterios: 5 semanas
 
 ```python
 # Cargar datos procesados
 import pandas as pd
-df = pd.read_csv('processed/ventas_weekly.csv', parse_dates=['week_start'])
-df.info()
-df.describe()
+df = pd.read_csv('simulated/urgencias_weekly.csv', parse_dates=['week_start'])
+print(f"Urgencias: {df['is_urgent'].sum()} ({df['is_urgent'].mean()*100:.1f}%)")
 ```
 
 ## Notas Importantes

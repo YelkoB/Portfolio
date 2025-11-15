@@ -30,14 +30,25 @@ AGGREGATION = 'weekly'  # Agregación temporal
 FORECAST_HORIZON = [1, 2, 4]  # Horizontes de predicción en semanas
 
 # ============================================
-# PARÁMETROS DE SIMULACIÓN DE URGENCIAS
+# PARÁMETROS DE DETECCIÓN DE URGENCIAS PREDECIBLES
 # ============================================
-# Threshold basado en desviaciones estándar
-URGENCY_STD_THRESHOLD = 1.5  # Número de desviaciones estándar sobre la media
-# Urgencia = ventas > (media + URGENCY_STD_THRESHOLD * std)
+# CONCEPTO: Detectar "urgencias" que parecen impredecibles para el comprador
+# pero que en realidad siguen patrones estacionales/tendencias predecibles
 
-SYNTHETIC_PROPORTION = 0.30  # Proporción de datos sintéticos
-BASE_PROB_URGENT = 0.08  # Probabilidad base de urgencia
+# Criterio A: Percentil Móvil
+URGENCY_PERCENTILE = 85  # Top 15% de ventas en ventana móvil
+PERCENTILE_WINDOW = 12  # Ventana de 12 semanas (~3 meses)
+
+# Criterio B: Crecimiento Acelerado
+URGENCY_GROWTH_THRESHOLD = 0.12  # 12% crecimiento semanal
+MIN_BASELINE_SALES = 1000  # Ventas mínimas para evitar falsos positivos
+
+# Criterio Híbrido (A o B)
+USE_HYBRID_CRITERIA = True  # Combinar ambos criterios
+
+# Simulación de urgencias sintéticas adicionales
+SYNTHETIC_PROPORTION = 0.30  # Proporción de urgencias sintéticas adicionales
+BASE_PROB_URGENT = 0.08  # Probabilidad base de urgencia sintética
 SEASONAL_AMPLITUDE = 0.04  # Amplitud de variación estacional
 
 # ============================================
