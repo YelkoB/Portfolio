@@ -46,10 +46,8 @@ MIN_BASELINE_SALES = 1000  # Ventas mínimas para evitar falsos positivos
 # Criterio Híbrido (A o B)
 USE_HYBRID_CRITERIA = True  # Combinar ambos criterios
 
-# Simulación de urgencias sintéticas adicionales
-SYNTHETIC_PROPORTION = 0.30  # Proporción de urgencias sintéticas adicionales
-BASE_PROB_URGENT = 0.08  # Probabilidad base de urgencia sintética
-SEASONAL_AMPLITUDE = 0.04  # Amplitud de variación estacional
+# NOTA: NO generamos urgencias sintéticas adicionales
+# Solo detectamos urgencias que ya existen en el dataset usando los criterios A y B
 
 # ============================================
 # PARÁMETROS DE VISUALIZACIÓN
