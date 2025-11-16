@@ -80,8 +80,8 @@ sns.set_palette('viridis')
 # ============================================================================
 # CONFIGURACIÓN: HORIZONTE DE PREDICCIÓN
 # ============================================================================
-# EXPERIMENTO: Empezamos con H=1, si falla probamos H=2 o H=4
-PREDICTION_HORIZON = 1  # Cambiar a 2 o 4 si H=1 no funciona (AUC < 0.70)
+# EXPERIMENTO: H=1 FALLÓ (AUC=0.502), ahora probamos H=2
+PREDICTION_HORIZON = 2  # H=2: Predecir si habrá urgencia en próximas 2 semanas
 
 print("="*80)
 print("FEATURE ENGINEERING - SIN DATA LEAKAGE")
