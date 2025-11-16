@@ -32,7 +32,17 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
 import warnings
-from tqdm import tqdm
+
+# tqdm may not be available in all environments; prefer tqdm.auto and fall back to a no-op wrapper
+try:
+    from tqdm.auto import tqdm
+except Exception:
+    try:
+        from tqdm import tqdm
+    except Exception:
+        # fallback: simple passthrough iterable (no progress bar)
+        def tqdm(iterable, **kwargs):
+            return iterable
 
 # Importar configuración
 from config import (

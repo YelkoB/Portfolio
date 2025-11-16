@@ -34,7 +34,14 @@ import seaborn as sns
 from scipy import stats
 from statsmodels.tsa.seasonal import seasonal_decompose
 import warnings
-from tqdm import tqdm
+try:
+    import importlib
+    tqdm = importlib.import_module('tqdm').tqdm
+except Exception:
+    # Fallback simple tqdm: returns the iterable unchanged and ignores progress display.
+    # This keeps the script working when tqdm is not installed.
+    def tqdm(iterable, desc=None, **kwargs):
+        return iterable
 
 # Importar configuración
 from config import (
