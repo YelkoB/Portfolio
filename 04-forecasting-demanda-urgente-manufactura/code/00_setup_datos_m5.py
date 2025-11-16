@@ -169,11 +169,12 @@ print(f"Top 10 productos por ventas:")
 print(product_sales.head(10))
 print()
 
-# Seleccionar top N productos para análisis
-TOP_N_PRODUCTS = 50
-top_products = product_sales.head(TOP_N_PRODUCTS)['product_id'].tolist()
+# Filtrar productos por ventas mínimas (en lugar de top N fijo)
+MIN_TOTAL_SALES = 5000  # Solo productos con >5K ventas totales
+top_products = product_sales[product_sales['total_sales'] >= MIN_TOTAL_SALES]['product_id'].tolist()
 
-print(f"✓ Seleccionados top {TOP_N_PRODUCTS} productos para análisis")
+print(f"✓ Seleccionados {len(top_products)} productos con >{MIN_TOTAL_SALES:,} ventas totales")
+print(f"  (Esto permite analizar productos representativos sin ruido)")
 print()
 
 # ============================================================================
