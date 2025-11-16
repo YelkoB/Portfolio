@@ -153,21 +153,54 @@ print(f"✓ Precios agregados: {sales_long.shape}")
 print()
 
 # ============================================================================
-# 4. AGREGACIÓN SEMANAL
+# 4. SELECCIÓN DE PRODUCTOS TOP
 # ============================================================================
-print("4. AGREGACIÓN SEMANAL")
+print("4. ANÁLISIS DE PRODUCTOS")
 print("-" * 80)
 
-sales_weekly = sales_long.groupby(['wm_yr_wk']).agg({
+# Calcular ventas totales por producto
+product_sales = sales_long.groupby(['item_id', 'store_id'])['sales'].sum().reset_index()
+product_sales.columns = ['item_id', 'store_id', 'total_sales']
+product_sales = product_sales.sort_values('total_sales', ascending=False)
+product_sales['product_id'] = product_sales['item_id'] + '_' + product_sales['store_id']
+
+print(f"Total producto-tienda combinaciones: {len(product_sales)}")
+print(f"Top 10 productos por ventas:")
+print(product_sales.head(10))
+print()
+
+# Seleccionar top N productos para análisis
+TOP_N_PRODUCTS = 50
+top_products = product_sales.head(TOP_N_PRODUCTS)['product_id'].tolist()
+
+print(f"✓ Seleccionados top {TOP_N_PRODUCTS} productos para análisis")
+print()
+
+# ============================================================================
+# 5. AGREGACIÓN SEMANAL POR PRODUCTO
+# ============================================================================
+print("5. AGREGACIÓN SEMANAL POR PRODUCTO")
+print("-" * 80)
+
+# Crear product_id en sales_long
+sales_long['product_id'] = sales_long['item_id'] + '_' + sales_long['store_id']
+
+# Filtrar solo top productos
+sales_long_top = sales_long[sales_long['product_id'].isin(top_products)].copy()
+
+print(f"Datos filtrados: {len(sales_long_top):,} registros")
+
+# Agregar por producto y semana
+sales_weekly = sales_long_top.groupby(['product_id', 'item_id', 'store_id', 'wm_yr_wk']).agg({
     'date': 'min',
     'sales': 'sum',
     'revenue': 'sum',
     'sell_price': 'mean'
 }).reset_index()
 
-sales_weekly.columns = ['week_id', 'week_start', 'total_sales', 'total_revenue', 'avg_price']
-sales_weekly = sales_weekly.sort_values('week_start').reset_index(drop=True)
-sales_weekly['week_num'] = range(len(sales_weekly))
+sales_weekly.columns = ['product_id', 'item_id', 'store_id', 'week_id',
+                         'week_start', 'total_sales', 'total_revenue', 'avg_price']
+sales_weekly = sales_weekly.sort_values(['product_id', 'week_start']).reset_index(drop=True)
 
 # Agregar información temporal
 sales_weekly['year'] = sales_weekly['week_start'].dt.year
@@ -176,16 +209,20 @@ sales_weekly['quarter'] = sales_weekly['week_start'].dt.quarter
 sales_weekly['week_of_year'] = sales_weekly['week_start'].dt.isocalendar().week
 sales_weekly['week_of_month'] = (sales_weekly['week_start'].dt.day - 1) // 7 + 1
 
+# Agregar week_num por producto
+sales_weekly['week_num'] = sales_weekly.groupby('product_id').cumcount()
+
 print(f"✓ Agregación completada")
-print(f"  Total semanas: {len(sales_weekly)}")
+print(f"  Total registros: {len(sales_weekly):,}")
+print(f"  Productos: {sales_weekly['product_id'].nunique()}")
+print(f"  Semanas por producto: ~{len(sales_weekly) / sales_weekly['product_id'].nunique():.0f}")
 print(f"  Período: {sales_weekly['week_start'].min().date()} a {sales_weekly['week_start'].max().date()}")
-print(f"  Ventas promedio: {sales_weekly['total_sales'].mean():,.0f} unidades/semana")
 print()
 
 # ============================================================================
-# 5. VALIDACIÓN
+# 6. VALIDACIÓN
 # ============================================================================
-print("5. VALIDACIÓN DE DATOS")
+print("6. VALIDACIÓN DE DATOS")
 print("-" * 80)
 
 # Missing values
@@ -205,52 +242,74 @@ print(f"Ventas negativas: {negatives} {'✓' if negatives == 0 else '✗'}")
 print()
 
 # ============================================================================
-# 6. ANÁLISIS EXPLORATORIO BÁSICO
+# 7. ANÁLISIS EXPLORATORIO BÁSICO
 # ============================================================================
-print("6. ANÁLISIS EXPLORATORIO")
+print("7. ANÁLISIS EXPLORATORIO")
 print("-" * 80)
 
 print("Estadísticas descriptivas:")
 print(sales_weekly[['total_sales', 'total_revenue', 'avg_price']].describe())
 print()
 
-# Serie temporal
-fig, ax = plt.subplots(figsize=FIGSIZE_WIDE)
-ax.plot(sales_weekly['week_start'], sales_weekly['total_sales'],
-        linewidth=1, color=COLORS['primary'], alpha=0.8)
-ax.axhline(sales_weekly['total_sales'].mean(), color='red',
-           linestyle='--', linewidth=1.5, alpha=0.7,
-           label=f"Promedio: {sales_weekly['total_sales'].mean():,.0f}")
-ax.set_title('Serie Temporal de Ventas Semanales (M5 Dataset)',
-             fontsize=14, fontweight='bold', pad=20)
-ax.set_xlabel('Fecha', fontsize=12)
-ax.set_ylabel('Unidades Vendidas', fontsize=12)
-ax.legend()
-ax.grid(True, alpha=0.3)
-plt.xticks(rotation=45)
+# Visualizar top 5 productos
+print("Graficando top 5 productos...")
+top_5_products = sales_weekly['product_id'].unique()[:5]
+
+fig, axes = plt.subplots(5, 1, figsize=(15, 12))
+for idx, product_id in enumerate(top_5_products):
+    product_data = sales_weekly[sales_weekly['product_id'] == product_id]
+    axes[idx].plot(product_data['week_start'], product_data['total_sales'],
+                   linewidth=1, color=COLORS['primary'], alpha=0.8)
+    axes[idx].axhline(product_data['total_sales'].mean(), color='red',
+                      linestyle='--', linewidth=1, alpha=0.5)
+    axes[idx].set_title(f'{product_id} (Promedio: {product_data["total_sales"].mean():.0f} u/semana)',
+                        fontsize=10)
+    axes[idx].set_ylabel('Ventas')
+    axes[idx].grid(True, alpha=0.3)
+    if idx < 4:
+        axes[idx].set_xticklabels([])
+    else:
+        axes[idx].set_xlabel('Fecha')
+        plt.setp(axes[idx].xaxis.get_majorticklabels(), rotation=45)
+
 plt.tight_layout()
-plt.savefig(FIGURES / '00_serie_temporal_m5.png', dpi=100, bbox_inches='tight')
-print(f"✓ Guardado: {FIGURES / '00_serie_temporal_m5.png'}")
+plt.savefig(FIGURES / '00_serie_temporal_m5_top5.png', dpi=100, bbox_inches='tight')
+print(f"✓ Guardado: {FIGURES / '00_serie_temporal_m5_top5.png'}")
 plt.close()
 
 # ============================================================================
-# 7. GUARDAR DATOS PROCESADOS
+# 8. GUARDAR DATOS PROCESADOS
 # ============================================================================
 print()
-print("7. GUARDANDO DATOS")
+print("8. GUARDANDO DATOS")
 print("-" * 80)
 
-# Dataset principal
+# Dataset principal (por producto)
 output_file = DATA_PROCESSED / 'sales_weekly.csv'
 sales_weekly.to_csv(output_file, index=False)
 
 print(f"✓ Datos guardados: {output_file}")
-print(f"  Registros: {len(sales_weekly)}")
+print(f"  Registros: {len(sales_weekly):,}")
+print(f"  Productos: {sales_weekly['product_id'].nunique()}")
 print(f"  Tamaño: {output_file.stat().st_size / 1024:.2f} KB")
+
+# Guardar lista de productos
+products_file = DATA_PROCESSED / 'products_list.csv'
+products_info = sales_weekly.groupby('product_id').agg({
+    'item_id': 'first',
+    'store_id': 'first',
+    'total_sales': 'sum',
+    'week_start': 'count'
+}).reset_index()
+products_info.columns = ['product_id', 'item_id', 'store_id', 'total_sales', 'n_weeks']
+products_info = products_info.sort_values('total_sales', ascending=False)
+products_info.to_csv(products_file, index=False)
+
+print(f"✓ Lista de productos: {products_file}")
 print()
 
 # ============================================================================
-# 8. RESUMEN
+# 9. RESUMEN
 # ============================================================================
 print()
 print("="*80)
@@ -259,20 +318,25 @@ print("="*80)
 print()
 print(f"📊 DATOS PROCESADOS:")
 print(f"  • Dataset: M5 (Walmart Sales) - Kaggle")
-print(f"  • Total semanas: {len(sales_weekly)}")
+print(f"  • Productos analizados: {sales_weekly['product_id'].nunique()}")
+print(f"  • Total registros: {len(sales_weekly):,} (producto × semana)")
+print(f"  • Semanas por producto: ~{len(sales_weekly) / sales_weekly['product_id'].nunique():.0f}")
 print(f"  • Período: {sales_weekly['week_start'].min().date()} a {sales_weekly['week_start'].max().date()}")
-print(f"  • Ventas promedio: {sales_weekly['total_sales'].mean():,.0f} unidades/semana")
-print(f"  • Ventas totales: {sales_weekly['total_sales'].sum():,.0f} unidades")
+print()
+print(f"📈 VENTAS:")
+print(f"  • Promedio por semana-producto: {sales_weekly['total_sales'].mean():,.0f} unidades")
+print(f"  • Total acumulado: {sales_weekly['total_sales'].sum():,.0f} unidades")
 print(f"  • Revenue total: ${sales_weekly['total_revenue'].sum():,.2f}")
 print()
 print(f"✅ CALIDAD:")
-print(f"  • Sin valores nulos")
-print(f"  • Serie temporal continua")
+print(f"  • Sin valores nulos: {missing == 0}")
+print(f"  • Serie temporal continua por producto")
 print(f"  • Valores en rangos esperados")
 print()
 print(f"📁 OUTPUTS:")
 print(f"  • {output_file.name}")
-print(f"  • 00_serie_temporal_m5.png")
+print(f"  • {products_file.name}")
+print(f"  • 00_serie_temporal_m5_top5.png")
 print()
 print("="*80)
 print("✓ SETUP COMPLETADO")
@@ -280,3 +344,4 @@ print("="*80)
 print()
 print("PRÓXIMO PASO:")
 print("  → Ejecutar: python code/02_deteccion_urgencias_predecibles.py")
+print("  → Detectará urgencias POR PRODUCTO y rankeará por predictibilidad")
