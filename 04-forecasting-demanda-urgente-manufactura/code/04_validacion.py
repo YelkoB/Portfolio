@@ -144,8 +144,8 @@ for product_id in tqdm(products, desc="Evaluando productos"):
 
     # Preparar test set
     X_test = test[feature_cols]
-    y_test_reg = test['total_sales']
-    y_test_clf = test['is_urgent']
+    y_test_reg = test['sales_target']  # Predicción próxima semana
+    y_test_clf = test['is_urgent_target']  # Urgencia próxima semana
 
     # Eliminar NaNs
     mask_test = ~(X_test.isna().any(axis=1))

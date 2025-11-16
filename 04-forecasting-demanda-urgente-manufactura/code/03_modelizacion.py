@@ -136,12 +136,13 @@ print(f"Features seleccionados para ML: {len(feature_cols)}")
 print(f"  Ejemplos: {', '.join(feature_cols[:10])}...")
 print()
 
-# Targets
-target_regression = 'total_sales'
-target_classification = 'is_urgent'
+# Targets (shifted - predecir próxima semana)
+target_regression = 'sales_target'
+target_classification = 'is_urgent_target'
 
-print(f"Target regresión: {target_regression}")
-print(f"Target clasificación: {target_classification}")
+print(f"Target regresión: {target_regression} (ventas próxima semana)")
+print(f"Target clasificación: {target_classification} (urgencia próxima semana)")
+print(f"⚠️  Horizonte de predicción: 1 semana adelante")
 print()
 
 # ============================================================================
