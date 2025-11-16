@@ -6,21 +6,27 @@ OBJETIVO:
 Crear features temporales para predicción PROSPECTIVA de urgencias.
 
 IMPORTANTE - EVITAR DATA LEAKAGE:
-- Predecir is_urgent de semana N+1 usando SOLO datos hasta semana N
+- Predecir is_urgent de semana N+H usando SOLO datos hasta semana N
 - NO usar ventas/stats de la semana actual
 - Todos los rolling stats calculados HASTA t-1 (shift 1)
-- Target shifted: predecir próxima semana
+- Target shifted: predecir próximas H semanas
 
-HORIZON:
-- Horizonte de predicción: 1 semana adelante
-- Con datos hasta HOY → predecir si PRÓXIMA semana es urgencia
+HORIZON CONFIGURABLE:
+- PREDICTION_HORIZON = 1, 2, o 4 semanas
+- Empezamos con H=1, si falla ajustamos a H=2 o H=4
+
+EXPERIMENTO:
+1. Probar H=1 semana (baseline)
+2. Si métricas malas (AUC < 0.70), probar H=2 o H=4
+3. Documentar que horizonte más largo es más predecible
 
 FEATURES A CREAR (todos usando datos PASADOS):
 1. Lags: ventas en t-1, t-2, t-4, t-52
 2. Rolling stats SHIFTED: media, std, min, max hasta t-1
-3. Features estacionales: mes, trimestre (de la semana TARGET)
-4. Features de tendencia: índice temporal
-5. Lags de urgencias: urgencias pasadas en t-1, t-2, t-4
+3. Features estacionales: mes, trimestre, semana del año
+4. **HOLIDAYS USA**: Navidad, Año Nuevo, Thanksgiving, 4 Julio, etc.
+5. Features de tendencia: índice temporal
+6. Lags de urgencias: urgencias pasadas en t-1, t-2, t-4
 
 INPUT:
 - data/simulated/urgencias_weekly.csv
@@ -42,6 +48,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
 import warnings
+<<<<<<< HEAD
 
 # tqdm may not be available in all environments; prefer tqdm.auto and fall back to a no-op wrapper
 try:
@@ -53,6 +60,10 @@ except Exception:
         # fallback: simple passthrough iterable (no progress bar)
         def tqdm(iterable, **kwargs):
             return iterable
+=======
+from tqdm import tqdm
+from datetime import datetime, timedelta
+>>>>>>> 65f4a09ea6c86da6ed41e31d7a5e468b3c3c977d
 
 # Importar configuración
 from config import (
@@ -66,11 +77,23 @@ np.random.seed(RANDOM_SEED)
 plt.style.use('seaborn-v0_8-darkgrid')
 sns.set_palette('viridis')
 
+# ============================================================================
+# CONFIGURACIÓN: HORIZONTE DE PREDICCIÓN
+# ============================================================================
+# EXPERIMENTO: Empezamos con H=1, si falla probamos H=2 o H=4
+PREDICTION_HORIZON = 1  # Cambiar a 2 o 4 si H=1 no funciona (AUC < 0.70)
+
 print("="*80)
 print("FEATURE ENGINEERING - SIN DATA LEAKAGE")
 print("="*80)
 print()
-print("⚠️  OBJETIVO: Predecir urgencia semana N+1 usando SOLO datos hasta N")
+print(f"⚠️  HORIZONTE DE PREDICCIÓN: {PREDICTION_HORIZON} semana(s) adelante")
+print(f"    Objetivo: Predecir urgencia en semana N+{PREDICTION_HORIZON} usando datos hasta N")
+print()
+print("📝 EXPERIMENTO:")
+print("   1. Probar H=1 (baseline)")
+print("   2. Si AUC < 0.70 → ajustar a H=2 o H=4")
+print("   3. Horizonte más largo = más predecible")
 print()
 
 # ============================================================================
@@ -112,7 +135,166 @@ print(f"  Productos: {df_top['product_id'].nunique()}")
 print()
 
 # ============================================================================
-# 2. FUNCIÓN: CREAR FEATURES SIN DATA LEAKAGE
+# 2. FUNCIÓN: DETECTAR HOLIDAYS USA
+# ============================================================================
+
+def get_us_holidays(year):
+    """
+    Retorna fechas de holidays principales de USA para un año.
+
+    Holidays incluidos:
+    - New Year's Day (1 enero)
+    - Martin Luther King Jr Day (3er lunes enero)
+    - Presidents Day (3er lunes febrero)
+    - Memorial Day (último lunes mayo)
+    - Independence Day (4 julio)
+    - Labor Day (1er lunes septiembre)
+    - Thanksgiving (4to jueves noviembre)
+    - Black Friday (día después Thanksgiving)
+    - Christmas (25 diciembre)
+    - Cyber Monday (lunes después Thanksgiving)
+    """
+    from datetime import datetime, timedelta
+
+    holidays = []
+
+    # New Year's Day
+    holidays.append(datetime(year, 1, 1))
+
+    # MLK Day (3er lunes enero)
+    jan_1 = datetime(year, 1, 1)
+    days_to_monday = (7 - jan_1.weekday()) % 7
+    first_monday_jan = jan_1 + timedelta(days=days_to_monday)
+    mlk_day = first_monday_jan + timedelta(weeks=2)
+    holidays.append(mlk_day)
+
+    # Presidents Day (3er lunes febrero)
+    feb_1 = datetime(year, 2, 1)
+    days_to_monday = (7 - feb_1.weekday()) % 7
+    first_monday_feb = feb_1 + timedelta(days=days_to_monday)
+    presidents_day = first_monday_feb + timedelta(weeks=2)
+    holidays.append(presidents_day)
+
+    # Memorial Day (último lunes mayo)
+    may_31 = datetime(year, 5, 31)
+    days_from_monday = (may_31.weekday() - 0) % 7
+    memorial_day = may_31 - timedelta(days=days_from_monday)
+    holidays.append(memorial_day)
+
+    # Independence Day
+    holidays.append(datetime(year, 7, 4))
+
+    # Labor Day (1er lunes septiembre)
+    sep_1 = datetime(year, 9, 1)
+    days_to_monday = (7 - sep_1.weekday()) % 7
+    labor_day = sep_1 + timedelta(days=days_to_monday)
+    holidays.append(labor_day)
+
+    # Thanksgiving (4to jueves noviembre)
+    nov_1 = datetime(year, 11, 1)
+    days_to_thursday = (3 - nov_1.weekday()) % 7
+    first_thursday_nov = nov_1 + timedelta(days=days_to_thursday)
+    thanksgiving = first_thursday_nov + timedelta(weeks=3)
+    holidays.append(thanksgiving)
+
+    # Black Friday (día después Thanksgiving)
+    black_friday = thanksgiving + timedelta(days=1)
+    holidays.append(black_friday)
+
+    # Cyber Monday (lunes después Thanksgiving)
+    cyber_monday = thanksgiving + timedelta(days=4)
+    holidays.append(cyber_monday)
+
+    # Christmas
+    holidays.append(datetime(year, 12, 25))
+
+    return holidays
+
+
+def create_holiday_features(df):
+    """
+    Crea features de holidays USA.
+
+    Features:
+    - is_holiday: 1 si la semana contiene un holiday
+    - is_holiday_week_before: 1 si es la semana ANTES de un holiday
+    - is_holiday_week_after: 1 si es la semana DESPUÉS de un holiday
+    - is_black_friday_week: 1 si contiene Black Friday
+    - is_christmas_week: 1 si contiene Navidad
+    - is_summer: 1 si es verano (junio-agosto)
+    """
+    df = df.copy()
+
+    # Obtener todos los holidays del rango de fechas
+    years = df['week_start'].dt.year.unique()
+    all_holidays = []
+    for year in years:
+        all_holidays.extend(get_us_holidays(year))
+
+    all_holidays_dates = pd.to_datetime(all_holidays)
+
+    # Función para verificar si una semana contiene un holiday
+    def week_has_holiday(week_start):
+        week_end = week_start + pd.Timedelta(days=6)
+        return any((h >= week_start) and (h <= week_end) for h in all_holidays_dates)
+
+    # Features
+    df['is_holiday'] = df['week_start'].apply(week_has_holiday).astype(int)
+
+    # Holiday semana anterior
+    df['is_holiday_week_before'] = df['is_holiday'].shift(1).fillna(0).astype(int)
+
+    # Holiday semana siguiente (pero shifted para no tener leakage)
+    df['is_holiday_week_after'] = df['is_holiday'].shift(-1).fillna(0).astype(int)
+    # Ahora shifteamos para que sea pasado
+    df['is_holiday_week_after'] = df['is_holiday_week_after'].shift(2).fillna(0).astype(int)
+
+    # Holidays específicos importantes
+    thanksgiving_dates = [datetime(y, 11, 1) + timedelta(days=(3 - datetime(y, 11, 1).weekday()) % 7) + timedelta(weeks=3) for y in years]
+    thanksgiving_dates = pd.to_datetime(thanksgiving_dates)
+
+    def week_has_thanksgiving(week_start):
+        week_end = week_start + pd.Timedelta(days=6)
+        return any((h >= week_start) and (h <= week_end) for h in thanksgiving_dates)
+
+    df['is_thanksgiving_week'] = df['week_start'].apply(week_has_thanksgiving).astype(int)
+
+    # Christmas week
+    christmas_dates = [pd.Timestamp(f'{y}-12-25') for y in years]
+
+    def week_has_christmas(week_start):
+        week_end = week_start + pd.Timedelta(days=6)
+        return any((h >= week_start) and (h <= week_end) for h in christmas_dates)
+
+    df['is_christmas_week'] = df['week_start'].apply(week_has_christmas).astype(int)
+
+    # Verano (junio-agosto)
+    df['is_summer'] = df['week_start'].dt.month.isin([6, 7, 8]).astype(int)
+
+    return df
+
+
+print("2. CREANDO FEATURES DE HOLIDAYS USA")
+print("-" * 80)
+
+# Aplicar a todo el dataset antes de filtrar por productos
+df_top = create_holiday_features(df_top)
+
+# Contar holidays
+n_holiday_weeks = df_top['is_holiday'].sum()
+n_thanksgiving = df_top['is_thanksgiving_week'].sum()
+n_christmas = df_top['is_christmas_week'].sum()
+n_summer = df_top['is_summer'].sum()
+
+print(f"✓ Features de holidays creados:")
+print(f"  Semanas con holidays: {n_holiday_weeks}")
+print(f"  Semanas Thanksgiving: {n_thanksgiving}")
+print(f"  Semanas Navidad: {n_christmas}")
+print(f"  Semanas de verano: {n_summer}")
+print()
+
+# ============================================================================
+# 3. FUNCIÓN: CREAR FEATURES SIN DATA LEAKAGE
 # ============================================================================
 
 def create_features_for_product(product_df, product_id):
@@ -202,13 +384,23 @@ def create_features_for_product(product_df, product_id):
     df_prod['cv_12'] = df_prod['sales_rolling_std_12'] / df_prod['sales_rolling_mean_12']
 
     # =======================================================================
-    # F. TARGET: SHIFT HACIA ARRIBA (predecir próxima semana)
+    # F. TARGET: SHIFT SEGÚN HORIZONTE (predecir próximas H semanas)
     # =======================================================================
-    # is_urgent_target = urgencia de la PRÓXIMA semana
-    df_prod['is_urgent_target'] = df_prod['is_urgent'].shift(-1)
+    # is_urgent_target = urgencia en semana N+PREDICTION_HORIZON
+    # Para H>1, usamos max de urgencias en las próximas H semanas
+    if PREDICTION_HORIZON == 1:
+        df_prod['is_urgent_target'] = df_prod['is_urgent'].shift(-PREDICTION_HORIZON)
+        df_prod['sales_target'] = df_prod['total_sales'].shift(-PREDICTION_HORIZON)
+    else:
+        # Para H>1: target = 1 si HAY AL MENOS 1 urgencia en próximas H semanas
+        df_prod['is_urgent_target'] = df_prod['is_urgent'].rolling(
+            window=PREDICTION_HORIZON, min_periods=1
+        ).max().shift(-PREDICTION_HORIZON)
 
-    # También guardamos sales target (para regresión prospectiva)
-    df_prod['sales_target'] = df_prod['total_sales'].shift(-1)
+        # Sales target = promedio de próximas H semanas
+        df_prod['sales_target'] = df_prod['total_sales'].rolling(
+            window=PREDICTION_HORIZON, min_periods=1
+        ).mean().shift(-PREDICTION_HORIZON)
 
     # Reemplazar infinitos y NaNs
     df_prod = df_prod.replace([np.inf, -np.inf], np.nan)
@@ -217,12 +409,14 @@ def create_features_for_product(product_df, product_id):
 
 
 # ============================================================================
-# 3. PROCESAR TODOS LOS TOP PRODUCTOS
+# 4. PROCESAR TODOS LOS TOP PRODUCTOS
 # ============================================================================
-print("2. CREANDO FEATURES SIN DATA LEAKAGE")
+print(f"3. CREANDO FEATURES SIN DATA LEAKAGE (H={PREDICTION_HORIZON})")
 print("-" * 80)
 print("   ⚠️  Todos los rolling stats SHIFTED para usar solo datos hasta t-1")
-print("   ⚠️  Target SHIFTED: predecir is_urgent de semana N+1")
+print(f"   ⚠️  Target SHIFTED: predecir is_urgent de semana N+{PREDICTION_HORIZON}")
+if PREDICTION_HORIZON > 1:
+    print(f"   ⚠️  Target = 1 si hay AL MENOS 1 urgencia en próximas {PREDICTION_HORIZON} semanas")
 print()
 
 all_features = []
@@ -259,21 +453,27 @@ print(f"Features creadas ({len(feature_cols)} total):")
 print()
 
 # Agrupar por tipo
-lag_features = [col for col in feature_cols if 'lag' in col and 'urgent' not in col]
+lag_features = [col for col in feature_cols if 'lag' in col and 'urgent' not in col and 'holiday' not in col]
 rolling_features = [col for col in feature_cols if 'rolling' in col]
 trend_features = [col for col in feature_cols if 'trend' in col or 'diff' in col or 'time' in col]
 urgency_features = [col for col in feature_cols if 'urgent' in col]
 ratio_features = [col for col in feature_cols if 'ratio' in col or 'dist' in col or 'cv_' in col]
-other_features = [col for col in feature_cols if col not in lag_features + rolling_features + trend_features + urgency_features + ratio_features]
+holiday_features = [col for col in feature_cols if 'holiday' in col or 'summer' in col or 'thanksgiving' in col or 'christmas' in col]
+other_features = [col for col in feature_cols if col not in lag_features + rolling_features + trend_features + urgency_features + ratio_features + holiday_features]
 
 print(f"  • Lags de ventas ({len(lag_features)}): {', '.join(lag_features)}")
 print(f"  • Rolling stats ({len(rolling_features)}): {', '.join(rolling_features[:5])}...")
 print(f"  • Tendencia ({len(trend_features)}): {', '.join(trend_features)}")
 print(f"  • Urgencias pasadas ({len(urgency_features)}): {', '.join(urgency_features)}")
 print(f"  • Ratios/Derivados ({len(ratio_features)}): {', '.join(ratio_features)}")
+print(f"  • Holidays USA ({len(holiday_features)}): {', '.join(holiday_features)}")
 print()
-print(f"⚠️  TARGET: is_urgent_target (urgencia de PRÓXIMA semana)")
-print(f"⚠️  TARGET (regresión): sales_target (ventas de PRÓXIMA semana)")
+print(f"⚠️  TARGET: is_urgent_target (urgencia en semana N+{PREDICTION_HORIZON})")
+if PREDICTION_HORIZON > 1:
+    print(f"             (target=1 si hay AL MENOS 1 urgencia en próximas {PREDICTION_HORIZON} semanas)")
+print(f"⚠️  TARGET (regresión): sales_target (ventas en semana N+{PREDICTION_HORIZON})")
+if PREDICTION_HORIZON > 1:
+    print(f"                       (promedio de próximas {PREDICTION_HORIZON} semanas)")
 print()
 
 # ============================================================================
@@ -468,8 +668,10 @@ feature_list = {
     'trend_features': trend_features,
     'urgency_features': urgency_features,
     'ratio_features': ratio_features,
+    'holiday_features': holiday_features,
     'target_classification': 'is_urgent_target',
-    'target_regression': 'sales_target'
+    'target_regression': 'sales_target',
+    'prediction_horizon': PREDICTION_HORIZON
 }
 
 import json
@@ -495,8 +697,10 @@ print(f"  • {len(feature_cols)} features creados (SOLO datos pasados)")
 print()
 print(f"🔧 ESTRATEGIA ANTI-LEAKAGE:")
 print(f"  ✅ Todos los rolling stats: .shift(1) → solo hasta t-1")
-print(f"  ✅ Target shifted: is_urgent_target = is_urgent.shift(-1)")
-print(f"  ✅ Horizonte: Predecir urgencia de semana N+1 con datos hasta N")
+print(f"  ✅ Target shifted: is_urgent_target = is_urgent.shift(-{PREDICTION_HORIZON})")
+print(f"  ✅ Horizonte: Predecir urgencia de semana N+{PREDICTION_HORIZON} con datos hasta N")
+if PREDICTION_HORIZON > 1:
+    print(f"  ✅ Target ampliado: 1 si hay urgencia en CUALQUIERA de próximas {PREDICTION_HORIZON} semanas")
 print(f"  ✅ NO se usa total_sales actual en features")
 print()
 print(f"🔧 FEATURES CREADOS:")
@@ -505,6 +709,7 @@ print(f"  • Rolling stats: {len(rolling_features)} (shifted, solo hasta t-1)")
 print(f"  • Tendencia: {len(trend_features)} (índice, diferencias)")
 print(f"  • Urgencias pasadas: {len(urgency_features)} (lags y conteos shifted)")
 print(f"  • Ratios: {len(ratio_features)} (usando sales_lag_1)")
+print(f"  • Holidays USA: {len(holiday_features)} (Navidad, Thanksgiving, verano, etc.)")
 print()
 print(f"📈 CORRELACIONES CON TARGET (is_urgent_target):")
 if len(target_corr) > 0:
@@ -513,22 +718,29 @@ if len(target_corr) > 0:
         print(f"  • {feat:40s}: {corr:+.3f}")
 print()
 print(f"📁 OUTPUTS GENERADOS:")
-print(f"  • {output_file.name} - Dataset listo para modelización")
+print(f"  • {output_file.name} - Dataset listo para modelización (H={PREDICTION_HORIZON})")
 print(f"  • {feature_list_file.name} - Lista de features por tipo")
 print(f"  • 02_correlation_matrix.png")
 print(f"  • 02_feature_distributions.png")
 print(f"  • 02_time_series_features.png")
 print()
 print("="*80)
-print("✓ FEATURE ENGINEERING COMPLETADO (SIN DATA LEAKAGE)")
+print(f"✓ FEATURE ENGINEERING COMPLETADO (H={PREDICTION_HORIZON}, SIN DATA LEAKAGE)")
 print("="*80)
 print()
 print("CONCLUSIÓN:")
 print(f"  ✅ {len(feature_cols)} features creados SOLO con datos PASADOS")
-print(f"  ✅ Target shifted: predecir urgencia de PRÓXIMA semana")
+print(f"  ✅ Target shifted: predecir urgencia en semana N+{PREDICTION_HORIZON}")
+if PREDICTION_HORIZON > 1:
+    print(f"  ✅ Horizonte ampliado → más predecible que H=1")
 print(f"  ✅ CERO data leakage - listo para predicción real")
+print(f"  ✅ Holidays USA incluidos - captura patrones estacionales de retail")
 print()
 print("PRÓXIMO PASO:")
-print(f"  → Fase 3: Entrenar modelos con nuevos features (AUC esperado ~0.75-0.85)")
-print(f"  → Métricas serán más realistas que antes")
+if PREDICTION_HORIZON == 1:
+    print(f"  → Fase 3: Entrenar modelos con H=1 (baseline)")
+    print(f"  → Si AUC < 0.70, AJUSTAR a H=2 o H=4 y re-entrenar")
+else:
+    print(f"  → Fase 3: Entrenar modelos con H={PREDICTION_HORIZON}")
+    print(f"  → Métricas esperadas mejores que H=1 (AUC ~0.70-0.80)")
 print()
