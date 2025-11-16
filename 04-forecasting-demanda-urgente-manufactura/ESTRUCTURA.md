@@ -90,13 +90,43 @@ Detecta urgencias POR PRODUCTO usando dos criterios:
 
 ---
 
-### 📍 Próximas Fases
+### 📍 Fase 2: Feature Engineering
 
-#### Fase 2: Feature Engineering
-- Crear lags (1, 2, 4, 52 semanas)
-- Rolling stats (media, std, min, max)
-- Features estacionales (mes, trimestre, semana del año)
-- Features de tendencia
+**Script:** `02_feature_engineering.py`
+
+**Input:**
+- `data/simulated/urgencias_weekly.csv` - Dataset con urgencias detectadas
+- `data/simulated/products_predictability_ranking.csv` - Ranking de productos
+
+**Output:**
+- `data/simulated/features_weekly.csv` - Dataset con features para TOP 25
+- `data/simulated/feature_list.json` - Lista de features por tipo
+- `results/figures/02_correlation_matrix.png`
+- `results/figures/02_feature_distributions.png`
+- `results/figures/02_time_series_features.png`
+
+**Descripción:**
+Crea variables predictivas temporales para los TOP 25 productos más predecibles.
+
+**Features creados:**
+1. **Lags:** ventas en t-1, t-2, t-4, t-52 (año anterior)
+2. **Rolling stats:** media, std, min, max en ventanas 4, 12, 52 semanas
+3. **Tendencia:** índice temporal, diferencias, aceleración
+4. **Estacionales:** mes (1-12), trimestre (1-4), semana del mes (1-5) one-hot
+5. **Urgencias pasadas:** lags de urgencias, conteos en ventanas móviles
+6. **Ratios:** ratio respecto medias, distancias min/max, coeficiente de variación
+
+**Proceso:**
+1. Carga urgencias detectadas de Fase 1
+2. Filtra TOP 25 productos del ranking
+3. Para cada producto: crea ~80 features temporales
+4. Analiza correlaciones con target `is_urgent`
+5. Genera visualizaciones de features clave
+6. Guarda dataset final listo para modelización
+
+---
+
+### 📍 Próximas Fases
 
 #### Fase 3: Modelización
 - ARIMA/SARIMA

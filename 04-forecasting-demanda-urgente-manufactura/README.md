@@ -50,8 +50,8 @@ Desarrollar un sistema predictivo multi-modelo para anticipar pedidos urgentes e
 | Fase | Script | Objetivo | Estado |
 |------|--------|----------|--------|
 | **0. Setup M5** | `00_setup_datos_m5.py` | Carga y procesamiento dataset M5 (Kaggle) | ✅ Completado |
-| **1. Detección + EDA** | `01_deteccion_urgencias_predecibles.py` | Detectar urgencias predecibles y validar patrones | ⏳ En desarrollo |
-| **2. Feature Engineering** | `02_feature_engineering.py` | Crear variables predictivas temporales | ⏳ Pendiente |
+| **1. Detección + EDA** | `01_deteccion_urgencias_predecibles.py` | Detectar urgencias predecibles y validar patrones | ✅ Completado |
+| **2. Feature Engineering** | `02_feature_engineering.py` | Crear variables predictivas temporales | ✅ Completado |
 | **3. Modelización** | `03_modelizacion.py` | Comparación multi-modelo (ARIMA, Prophet, ML) | ⏳ Pendiente |
 | **4. Validación** | `04_validacion.py` | Validación con ground truth controlado | ⏳ Pendiente |
 | **5. Valor Operativo** | `05_valor_operativo.py` | Cuantificación de ROI y métricas de negocio | ⏳ Pendiente |
