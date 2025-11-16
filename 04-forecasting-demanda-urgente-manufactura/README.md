@@ -14,8 +14,7 @@ Desarrollar un sistema predictivo multi-modelo para anticipar pedidos urgentes e
 - **[📓 code/](./code/)** - Scripts de análisis por fase:
   - `config.py` - Configuración global del proyecto
   - `00_setup_datos_m5.py` - Carga y procesamiento dataset M5 (Kaggle)
-  - `01_generar_datos_sinteticos.py` - Alternativa: datos sintéticos (sin M5)
-  - `02_deteccion_urgencias_predecibles.py` - Detección y validación de urgencias
+  - `01_deteccion_urgencias_predecibles.py` - Detección y validación de urgencias
   - *(Próximas fases: feature engineering, modelización, validación)*
 
 ### Resultados
@@ -50,13 +49,12 @@ Desarrollar un sistema predictivo multi-modelo para anticipar pedidos urgentes e
 ### Fases de Desarrollo
 | Fase | Script | Objetivo | Estado |
 |------|--------|----------|--------|
-| **0A. Setup M5** | `00_setup_datos_m5.py` | Carga y procesamiento dataset M5 (Kaggle) | ✅ Completado |
-| **0B. Alternativa** | `01_generar_datos_sinteticos.py` | Generación de datos sintéticos (sin M5) | ✅ Completado |
-| **1. Detección + EDA** | `02_deteccion_urgencias_predecibles.py` | Detectar urgencias predecibles y validar patrones | ✅ Completado |
-| **2. Feature Engineering** | `03_feature_engineering.py` | Crear variables predictivas temporales | ⏳ Pendiente |
-| **3. Modelización** | `04_modelizacion.py` | Comparación multi-modelo (ARIMA, Prophet, ML) | ⏳ Pendiente |
-| **4. Validación** | `05_validacion.py` | Validación con ground truth controlado | ⏳ Pendiente |
-| **5. Valor Operativo** | `06_valor_operativo.py` | Cuantificación de ROI y métricas de negocio | ⏳ Pendiente |
+| **0. Setup M5** | `00_setup_datos_m5.py` | Carga y procesamiento dataset M5 (Kaggle) | ✅ Completado |
+| **1. Detección + EDA** | `01_deteccion_urgencias_predecibles.py` | Detectar urgencias predecibles y validar patrones | ⏳ En desarrollo |
+| **2. Feature Engineering** | `02_feature_engineering.py` | Crear variables predictivas temporales | ⏳ Pendiente |
+| **3. Modelización** | `03_modelizacion.py` | Comparación multi-modelo (ARIMA, Prophet, ML) | ⏳ Pendiente |
+| **4. Validación** | `04_validacion.py` | Validación con ground truth controlado | ⏳ Pendiente |
+| **5. Valor Operativo** | `05_valor_operativo.py` | Cuantificación de ROI y métricas de negocio | ⏳ Pendiente |
 
 ### Modelos Evaluados
 - **ARIMA/SARIMA** - Baseline estadístico para series temporales
