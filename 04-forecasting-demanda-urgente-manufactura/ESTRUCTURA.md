@@ -126,19 +126,47 @@ Crea variables predictivas temporales para los TOP 25 productos más predecibles
 
 ---
 
+### 📍 Fase 3: Modelización
+
+**Script:** `03_modelizacion.py`
+
+**Input:**
+- `data/simulated/features_weekly.csv` - Dataset con features
+- `data/simulated/feature_list.json` - Lista de features
+
+**Output:**
+- `data/simulated/model_results.csv` - Resultados por modelo y producto
+- `data/simulated/best_models.csv` - Mejor modelo por producto
+- `models/*.pkl` - Modelos entrenados guardados
+- `results/figures/03_regression_comparison.png`
+- `results/figures/03_classification_comparison.png`
+
+**Descripción:**
+Entrena y compara múltiples modelos de Machine Learning para:
+1. **Regresión:** Predecir ventas futuras (RMSE, MAE, MAPE)
+2. **Clasificación:** Predecir urgencias futuras (Precision, Recall, F1, AUC)
+
+**Modelos evaluados:**
+- **Random Forest:** Ensemble de árboles de decisión
+- **XGBoost:** Gradient boosting optimizado
+
+**Proceso:**
+1. Train/Val/Test split temporal (70/15/15) - sin data leakage
+2. Entrenar cada modelo en TOP 25 productos
+3. Evaluar en validation set
+4. Guardar modelos entrenados (.pkl)
+5. Comparar métricas entre modelos
+6. Seleccionar mejor modelo por producto
+
+---
+
 ### 📍 Próximas Fases
 
-#### Fase 3: Modelización
-- ARIMA/SARIMA
-- Prophet
-- Random Forest
-- XGBoost
-- Comparación de métricas
-
 #### Fase 4: Validación
-- Train/Val/Test split temporal
-- Validación sin data leakage
+- Evaluación en test set
+- Análisis de errores y feature importance
 - Métricas de clasificación (urgente vs normal)
+- Predicciones futuras
 
 #### Fase 5: Valor Operativo
 - ROI de predicción
