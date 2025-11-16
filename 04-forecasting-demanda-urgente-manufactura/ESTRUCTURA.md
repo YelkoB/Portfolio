@@ -160,18 +160,85 @@ Entrena y compara múltiples modelos de Machine Learning para:
 
 ---
 
-### 📍 Próximas Fases
+### 📍 Fase 4: Validación
 
-#### Fase 4: Validación
-- Evaluación en test set
-- Análisis de errores y feature importance
-- Métricas de clasificación (urgente vs normal)
-- Predicciones futuras
+**Script:** `04_validacion.py`
 
-#### Fase 5: Valor Operativo
-- ROI de predicción
-- Costos evitados
-- Métricas de negocio
+**Input:**
+- `data/simulated/features_weekly.csv`
+- `data/simulated/best_models.csv`
+- `models/*.pkl` - Modelos entrenados
+
+**Output:**
+- `data/simulated/test_predictions.csv` - Predicciones en test set
+- `data/simulated/validation_metrics.csv` - Métricas finales
+- `results/figures/04_regression_predictions.png`
+- `results/figures/04_confusion_matrix.png`
+- `results/figures/04_error_distribution.png`
+- `results/figures/04_feature_importance.png`
+
+**Descripción:**
+Evalúa el rendimiento de los mejores modelos en datos no vistos (test set).
+
+**Proceso:**
+1. Carga mejores modelos seleccionados en Fase 3
+2. Predice en test set (15% final de datos temporales)
+3. Calcula métricas finales de rendimiento
+4. Análisis de errores y residuos
+5. Feature importance de modelos basados en árboles
+6. Visualizaciones de predicciones vs actual
+
+**Métricas evaluadas:**
+- **Regresión:** RMSE, MAE, MAPE final en test
+- **Clasificación:** Precision, Recall, F1, AUC final en test
+
+---
+
+### 📍 Fase 5: Valor Operativo
+
+**Script:** `05_valor_operativo.py`
+
+**Input:**
+- `data/simulated/test_predictions.csv`
+- `data/simulated/validation_metrics.csv`
+- `data/simulated/features_weekly.csv`
+
+**Output:**
+- `data/simulated/roi_analysis.csv` - Análisis de ROI
+- `data/simulated/cost_comparison.csv` - Comparación de costos
+- `results/figures/05_cost_comparison.png`
+- `results/figures/05_roi_analysis.png`
+- `results/figures/05_savings_by_product.png`
+
+**Descripción:**
+Cuantifica el valor de negocio del sistema mediante análisis de ROI y costos operativos.
+
+**Supuestos de negocio:**
+- Pedido urgente: 1.5x costo normal
+- Holding cost: $0.10 por unidad/semana
+- Backorder cost: $2.00 por unidad
+- Nivel de servicio target: 95%
+
+**Proceso:**
+1. Calcula costos SIN predicción (baseline):
+   - Safety stock basado en volatilidad histórica
+   - Todas las urgencias manejadas reactivamente
+
+2. Calcula costos CON predicción:
+   - Safety stock reducido (mejor planificación)
+   - Urgencias anticipadas → pedido normal vs urgente
+
+3. Compara escenarios y calcula:
+   - Ahorros totales por categoría (holding, ordering, backorder)
+   - ROI año 1 considerando costos de implementación
+   - Período de recuperación de inversión
+   - Proyección multi-año
+
+**Beneficios demostrados:**
+- Reducción de pedidos urgentes
+- Optimización de safety stock
+- Disminución de backorders
+- ROI positivo desde año 1
 
 ---
 

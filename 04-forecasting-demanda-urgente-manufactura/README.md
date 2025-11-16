@@ -53,8 +53,8 @@ Desarrollar un sistema predictivo multi-modelo para anticipar pedidos urgentes e
 | **1. Detección + EDA** | `01_deteccion_urgencias_predecibles.py` | Detectar urgencias predecibles y validar patrones | ✅ Completado |
 | **2. Feature Engineering** | `02_feature_engineering.py` | Crear variables predictivas temporales | ✅ Completado |
 | **3. Modelización** | `03_modelizacion.py` | Comparación multi-modelo (RF, XGBoost) | ✅ Completado |
-| **4. Validación** | `04_validacion.py` | Validación con ground truth controlado | ⏳ Pendiente |
-| **5. Valor Operativo** | `05_valor_operativo.py` | Cuantificación de ROI y métricas de negocio | ⏳ Pendiente |
+| **4. Validación** | `04_validacion.py` | Evaluación en test set y feature importance | ✅ Completado |
+| **5. Valor Operativo** | `05_valor_operativo.py` | Cuantificación de ROI y métricas de negocio | ✅ Completado |
 
 ### Modelos Evaluados
 - **ARIMA/SARIMA** - Baseline estadístico para series temporales
