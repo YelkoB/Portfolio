@@ -48,7 +48,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
 import warnings
-<<<<<<< HEAD
+from datetime import datetime, timedelta
 
 # tqdm may not be available in all environments; prefer tqdm.auto and fall back to a no-op wrapper
 try:
@@ -60,10 +60,6 @@ except Exception:
         # fallback: simple passthrough iterable (no progress bar)
         def tqdm(iterable, **kwargs):
             return iterable
-=======
-from tqdm import tqdm
-from datetime import datetime, timedelta
->>>>>>> 65f4a09ea6c86da6ed41e31d7a5e468b3c3c977d
 
 # Importar configuración
 from config import (
