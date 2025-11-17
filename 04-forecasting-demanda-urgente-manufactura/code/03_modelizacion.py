@@ -218,9 +218,15 @@ def train_random_forest_regression(X_train, y_train, X_val, y_val):
     # Métricas
     rmse = np.sqrt(mean_squared_error(y_val_clean, y_pred))
     mae = mean_absolute_error(y_val_clean, y_pred)
-    mape = np.mean(np.abs((y_val_clean - y_pred) / (y_val_clean + 1))) * 100
 
-    metrics = {'rmse': rmse, 'mae': mae, 'mape': mape}
+    # SMAPE (Symmetric Mean Absolute Percentage Error) - más robusto que MAPE
+    # SMAPE = 100 * mean(2 * |actual - pred| / (|actual| + |pred|))
+    # Evita división por cero y es simétrico
+    denominator = np.abs(y_val_clean) + np.abs(y_pred)
+    # Evitar división por 0: si ambos son 0, el error es 0
+    smape = np.mean(np.where(denominator == 0, 0, 2 * np.abs(y_val_clean - y_pred) / denominator)) * 100
+
+    metrics = {'rmse': rmse, 'mae': mae, 'mape': smape}  # Mantener nombre 'mape' para compatibilidad
 
     return model, metrics, y_pred
 
@@ -256,9 +262,15 @@ def train_xgboost_regression(X_train, y_train, X_val, y_val):
     # Métricas
     rmse = np.sqrt(mean_squared_error(y_val_clean, y_pred))
     mae = mean_absolute_error(y_val_clean, y_pred)
-    mape = np.mean(np.abs((y_val_clean - y_pred) / (y_val_clean + 1))) * 100
 
-    metrics = {'rmse': rmse, 'mae': mae, 'mape': mape}
+    # SMAPE (Symmetric Mean Absolute Percentage Error) - más robusto que MAPE
+    # SMAPE = 100 * mean(2 * |actual - pred| / (|actual| + |pred|))
+    # Evita división por cero y es simétrico
+    denominator = np.abs(y_val_clean) + np.abs(y_pred)
+    # Evitar división por 0: si ambos son 0, el error es 0
+    smape = np.mean(np.where(denominator == 0, 0, 2 * np.abs(y_val_clean - y_pred) / denominator)) * 100
+
+    metrics = {'rmse': rmse, 'mae': mae, 'mape': smape}  # Mantener nombre 'mape' para compatibilidad
 
     return model, metrics, y_pred
 

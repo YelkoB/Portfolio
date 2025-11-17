@@ -1,6 +1,46 @@
 # Experimento: Horizonte de Predicción Óptimo
 
-## 🎯 Objetivo
+## ⚠️ ACTUALIZACIÓN: Resultados con Dataset M5 Real
+
+**Fecha:** 2025-11-16
+**Dataset:** M5 Walmart (2,862 productos reales)
+**Cambios Implementados:**
+
+### 🔧 Mejoras Técnicas Aplicadas:
+1. **✅ SMAPE en lugar de MAPE**
+   - Problema original: MAPE explotaba con valores cercanos a 0 (138-154%)
+   - Solución: SMAPE (Symmetric MAPE) robusto a divisiones por cero
+   - Fórmula: `SMAPE = 100 × mean(2 × |actual - pred| / (|actual| + |pred|))`
+
+2. **✅ Entrenamiento en TODOS los productos**
+   - Original: Solo TOP 25 productos
+   - Actualizado: TOP_N = None → Procesa TODOS los 2,862 productos
+   - Beneficio: Identificar en qué productos funciona mejor el modelo
+
+3. **✅ Features de Holidays USA confirmadas**
+   - Thanksgiving, Black Friday, Cyber Monday, Christmas
+   - Summer season (June-August)
+   - Holiday weeks (before/after)
+   - Total: 6 features temporales adicionales
+
+### 📊 Resultados Preliminares con M5 Real (H=2):
+```
+Clasificación:
+  RandomForest: AUC=0.675 ✅ (supera umbral 0.60!)
+  XGBoost:      AUC=0.630 ✅
+  F1:           0.336-0.387 (trade-off con AUC)
+
+Regresión (con SMAPE corregido):
+  SMAPE: [Pendiente re-ejecución]
+  RMSE:  28-31
+```
+
+**🎯 Hallazgo Clave:** AUC 0.675 con M5 real es **33% mejor** que los 0.507 con datos sintéticos.
+Esto indica que el modelo **SÍ funciona** en datos reales cuando hay patrones estacionales verdaderos.
+
+---
+
+## 🎯 Objetivo Original
 
 Determinar el horizonte de predicción óptimo para urgencias en retail, balanceando:
 - **Predictibilidad** (métricas ML)

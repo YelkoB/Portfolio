@@ -1,5 +1,35 @@
 # ⚙️ Forecasting de Demanda Urgente en Manufactura
 
+## 📢 Actualizaciones Recientes (2025-11-16)
+
+### ✨ Mejoras Implementadas:
+
+1. **🔧 SMAPE en lugar de MAPE**
+   - Problema resuelto: MAPE explotaba a 138-154% con valores cercanos a 0
+   - Implementado SMAPE (Symmetric MAPE) robusto a divisiones por cero
+   - Más info: `code/03_modelizacion.py`
+
+2. **📈 Entrenamiento en TODOS los productos M5**
+   - Antes: Solo TOP 25 productos
+   - Ahora: TOP_N = None → Entrena en los **2,862 productos completos**
+   - Permite identificar qué productos son más predecibles
+   - Config en: `code/02_feature_engineering.py` línea 117
+
+3. **🎄 Features de Holidays USA**
+   - 6 features adicionales: Thanksgiving, Christmas, Black Friday, Summer, etc.
+   - Captura patrones estacionales de retail USA
+   - Implementado en: `code/02_feature_engineering.py`
+
+4. **🎯 Resultados con M5 Real**
+   - **AUC 0.675** con RandomForest ✅ (supera umbral 0.60)
+   - 33% mejor que con datos sintéticos (0.507 → 0.675)
+   - Ver: `EXPERIMENTO.md` para análisis completo
+
+### 📁 Archivos Eliminados:
+- ~~`00_generar_multiproducto.py`~~ (ya no necesario con M5 real)
+
+---
+
 ## 🎯 Objetivo
 Desarrollar un sistema predictivo multi-modelo para anticipar pedidos urgentes en entorno manufacturero, optimizando capacidad productiva mediante forecasting de series temporales y reduciendo variabilidad operativa.
 
