@@ -1,5 +1,11 @@
 {
   "all_features": [
+    "is_holiday",
+    "is_holiday_week_before",
+    "is_holiday_week_after",
+    "is_thanksgiving_week",
+    "is_christmas_week",
+    "is_summer",
     "sales_lag_1",
     "sales_lag_2",
     "sales_lag_4",
@@ -73,6 +79,15 @@
     "cv_4",
     "cv_12"
   ],
+  "holiday_features": [
+    "is_holiday",
+    "is_holiday_week_before",
+    "is_holiday_week_after",
+    "is_thanksgiving_week",
+    "is_christmas_week",
+    "is_summer"
+  ],
   "target_classification": "is_urgent_target",
-  "target_regression": "sales_target"
+  "target_regression": "sales_target",
+  "prediction_horizon": 2
 }
