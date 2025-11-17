@@ -209,7 +209,8 @@ def train_random_forest_regression(X_train, y_train, X_val, y_val):
     X_val_clean = X_val[mask_val]
     y_val_clean = y_val[mask_val]
 
-    if len(X_train_clean) < 10:
+    # Validar que hay suficientes datos en train Y validation
+    if len(X_train_clean) < 10 or len(X_val_clean) < 5:
         return None, None, None
 
     model.fit(X_train_clean, y_train_clean)
@@ -253,7 +254,8 @@ def train_xgboost_regression(X_train, y_train, X_val, y_val):
     X_val_clean = X_val[mask_val]
     y_val_clean = y_val[mask_val]
 
-    if len(X_train_clean) < 10:
+    # Validar que hay suficientes datos en train Y validation
+    if len(X_train_clean) < 10 or len(X_val_clean) < 5:
         return None, None, None
 
     model.fit(X_train_clean, y_train_clean)
@@ -296,7 +298,8 @@ def train_random_forest_classification(X_train, y_train, X_val, y_val):
     X_val_clean = X_val[mask_val]
     y_val_clean = y_val[mask_val]
 
-    if len(X_train_clean) < 10 or y_train_clean.sum() < 2:
+    # Validar que hay suficientes datos y ambas clases en train y val
+    if len(X_train_clean) < 10 or len(X_val_clean) < 5 or y_train_clean.sum() < 2 or y_val_clean.sum() < 1:
         return None, None, None
 
     model.fit(X_train_clean, y_train_clean)
@@ -345,7 +348,8 @@ def train_xgboost_classification(X_train, y_train, X_val, y_val):
     X_val_clean = X_val[mask_val]
     y_val_clean = y_val[mask_val]
 
-    if len(X_train_clean) < 10 or y_train_clean.sum() < 2:
+    # Validar que hay suficientes datos y ambas clases en train y val
+    if len(X_train_clean) < 10 or len(X_val_clean) < 5 or y_train_clean.sum() < 2 or y_val_clean.sum() < 1:
         return None, None, None
 
     model.fit(X_train_clean, y_train_clean)
