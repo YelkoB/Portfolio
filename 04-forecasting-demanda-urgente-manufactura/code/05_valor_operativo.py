@@ -105,6 +105,61 @@ print(f"✓ Métricas cargadas: {len(df_metrics)}")
 print(f"✓ Features cargados: {len(df_features):,}")
 print()
 
+# ============================================================================
+# 2.5. FILTRAR PRODUCTOS CON DATOS INSUFICIENTES
+# ============================================================================
+print("2.5. FILTRADO DE PRODUCTOS CON DATOS INSUFICIENTES")
+print("-" * 80)
+
+# Contar muestras de test por producto y task
+test_samples = df_pred.groupby(['product_id', 'task']).size().reset_index(name='test_samples')
+
+# Contar urgencias (actual=1) para clasificación
+df_pred_clf_temp = df_pred[df_pred['task'] == 'classification'].copy()
+urgencias_test = df_pred_clf_temp.groupby('product_id')['actual'].sum().reset_index(name='urgencias_test')
+
+# Criterios de filtrado (mismos que en 04_validacion.py)
+MIN_TEST_SAMPLES = 20
+MIN_URGENCIAS_TEST = 5
+
+# Fusionar conteos con predicciones
+df_pred = df_pred.merge(test_samples, on=['product_id', 'task'], how='left')
+df_pred['test_samples'] = df_pred['test_samples'].fillna(0).astype(int)
+
+# Para clasificación, añadir conteo de urgencias
+df_pred = df_pred.merge(urgencias_test, on='product_id', how='left')
+df_pred['urgencias_test'] = df_pred['urgencias_test'].fillna(0).astype(int)
+
+# Guardar predicciones originales
+df_pred_original = df_pred.copy()
+
+# Aplicar filtros
+df_pred = df_pred[
+    (df_pred['test_samples'] >= MIN_TEST_SAMPLES) &
+    ((df_pred['task'] == 'regression') |
+     ((df_pred['task'] == 'classification') & (df_pred['urgencias_test'] >= MIN_URGENCIAS_TEST)))
+].copy()
+
+# Filtrar también df_metrics para consistencia
+productos_validos = df_pred['product_id'].unique()
+df_metrics_original = df_metrics.copy()
+df_metrics = df_metrics[df_metrics['product_id'].isin(productos_validos)].copy()
+
+predicciones_eliminadas = len(df_pred_original) - len(df_pred)
+productos_eliminados = len(df_metrics_original) - len(df_metrics)
+print(f"⚠️  Criterios de filtrado:")
+print(f"   • Mínimo de muestras en test: {MIN_TEST_SAMPLES}")
+print(f"   • Mínimo de urgencias en test (clasificación): {MIN_URGENCIAS_TEST}")
+print()
+print(f"✓ Predicciones antes del filtro: {len(df_pred_original):,}")
+print(f"✓ Predicciones después del filtro: {len(df_pred):,}")
+print(f"❌ Predicciones eliminadas: {predicciones_eliminadas:,} ({predicciones_eliminadas/len(df_pred_original)*100:.1f}%)")
+print()
+print(f"✓ Productos antes del filtro: {len(df_metrics_original)}")
+print(f"✓ Productos después del filtro: {len(df_metrics)}")
+print(f"❌ Productos eliminados: {productos_eliminados} ({productos_eliminados/len(df_metrics_original)*100:.1f}%)")
+print()
+
 # Filtrar solo regresión y clasificación válidas
 df_pred_reg = df_pred[df_pred['task'] == 'regression'].copy()
 df_pred_clf = df_pred[df_pred['task'] == 'classification'].copy()

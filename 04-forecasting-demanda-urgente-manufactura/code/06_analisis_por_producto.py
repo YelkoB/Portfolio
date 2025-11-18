@@ -56,13 +56,19 @@ print(f"  Productos evaluados: {df_metrics['product_id'].nunique()}")
 df_predictions = pd.read_csv(DATA_SIMULATED / 'test_predictions.csv')
 print(f"✓ Predicciones cargadas: {df_predictions.shape}")
 
-# Contar muestras de test por producto
+# Contar muestras de test por producto y task
 test_samples = df_predictions.groupby(['product_id', 'task']).size().reset_index(name='test_samples')
+
+# Contar urgencias (actual=1) para clasificación
+df_pred_clf = df_predictions[df_predictions['task'] == 'classification'].copy()
+urgencias_test = df_pred_clf.groupby('product_id')['actual'].sum().reset_index(name='urgencias_test')
+
 print(f"✓ Conteo de muestras por producto calculado")
+print(f"✓ Conteo de urgencias en test calculado")
 print()
 
 # ============================================================================
-# 2. FUSIONAR CON CONTEO DE MUESTRAS Y FILTRAR
+# 2. FUSIONAR CON CONTEO DE MUESTRAS/URGENCIAS Y FILTRAR
 # ============================================================================
 print("2. FUSIONANDO DATOS Y FILTRANDO PRODUCTOS")
 print("-" * 80)
@@ -71,16 +77,32 @@ print("-" * 80)
 df_metrics = df_metrics.merge(test_samples, on=['product_id', 'task'], how='left')
 df_metrics['test_samples'] = df_metrics['test_samples'].fillna(0).astype(int)
 
-# Filtrar productos con pocas muestras
+# Fusionar con conteo de urgencias para clasificación
+df_metrics = df_metrics.merge(urgencias_test, on='product_id', how='left')
+df_metrics['urgencias_test'] = df_metrics['urgencias_test'].fillna(0).astype(int)
+
+# Criterios de filtrado (mismos que en 04 y 05)
 MIN_TEST_SAMPLES = 20
+MIN_URGENCIAS_TEST = 5
+
+# Guardar antes del filtro
 df_metrics_original = df_metrics.copy()
-df_metrics = df_metrics[df_metrics['test_samples'] >= MIN_TEST_SAMPLES].copy()
+
+# Aplicar filtros: muestras suficientes Y urgencias suficientes (para clasificación)
+df_metrics = df_metrics[
+    (df_metrics['test_samples'] >= MIN_TEST_SAMPLES) &
+    ((df_metrics['task'] == 'regression') |
+     ((df_metrics['task'] == 'classification') & (df_metrics['urgencias_test'] >= MIN_URGENCIAS_TEST)))
+].copy()
 
 productos_eliminados = len(df_metrics_original) - len(df_metrics)
-print(f"⚠️  Mínimo de muestras en test: {MIN_TEST_SAMPLES}")
+print(f"⚠️  Criterios de filtrado:")
+print(f"   • Mínimo de muestras en test: {MIN_TEST_SAMPLES}")
+print(f"   • Mínimo de urgencias en test (clasificación): {MIN_URGENCIAS_TEST}")
+print()
 print(f"✓ Productos antes del filtro: {len(df_metrics_original)}")
 print(f"✓ Productos después del filtro: {len(df_metrics)}")
-print(f"❌ Productos eliminados (pocas muestras): {productos_eliminados} ({productos_eliminados/len(df_metrics_original)*100:.1f}%)")
+print(f"❌ Productos eliminados: {productos_eliminados} ({productos_eliminados/len(df_metrics_original)*100:.1f}%)")
 print()
 
 # ============================================================================

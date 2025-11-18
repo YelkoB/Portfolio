@@ -266,9 +266,54 @@ print(f"  Predicciones generadas: {len(df_predictions):,}")
 print()
 
 # ============================================================================
-# 4. MÉTRICAS FINALES
+# 3.5. FILTRAR PRODUCTOS CON DATOS INSUFICIENTES
 # ============================================================================
-print("3. MÉTRICAS FINALES EN TEST SET")
+print("3.5. FILTRADO DE PRODUCTOS CON DATOS INSUFICIENTES")
+print("-" * 80)
+
+# Contar muestras de test por producto y task
+test_samples = df_predictions.groupby(['product_id', 'task']).size().reset_index(name='test_samples')
+
+# Contar urgencias (actual=1) para clasificación
+df_pred_clf = df_predictions[df_predictions['task'] == 'classification'].copy()
+urgencias_test = df_pred_clf.groupby('product_id')['actual'].sum().reset_index(name='urgencias_test')
+
+# Criterios de filtrado
+MIN_TEST_SAMPLES = 20
+MIN_URGENCIAS_TEST = 5
+
+# Fusionar conteos con resultados
+df_test_results = df_test_results.merge(test_samples, on=['product_id', 'task'], how='left')
+df_test_results['test_samples'] = df_test_results['test_samples'].fillna(0).astype(int)
+
+# Para clasificación, añadir conteo de urgencias
+df_test_results = df_test_results.merge(urgencias_test, on='product_id', how='left')
+df_test_results['urgencias_test'] = df_test_results['urgencias_test'].fillna(0).astype(int)
+
+# Guardar resultados originales
+df_test_results_original = df_test_results.copy()
+
+# Aplicar filtros
+df_test_results = df_test_results[
+    (df_test_results['test_samples'] >= MIN_TEST_SAMPLES) &
+    ((df_test_results['task'] == 'regression') |
+     ((df_test_results['task'] == 'classification') & (df_test_results['urgencias_test'] >= MIN_URGENCIAS_TEST)))
+].copy()
+
+productos_eliminados = len(df_test_results_original) - len(df_test_results)
+print(f"⚠️  Criterios de filtrado:")
+print(f"   • Mínimo de muestras en test: {MIN_TEST_SAMPLES}")
+print(f"   • Mínimo de urgencias en test (clasificación): {MIN_URGENCIAS_TEST}")
+print()
+print(f"✓ Productos antes del filtro: {len(df_test_results_original)}")
+print(f"✓ Productos después del filtro: {len(df_test_results)}")
+print(f"❌ Productos eliminados: {productos_eliminados} ({productos_eliminados/len(df_test_results_original)*100:.1f}%)")
+print()
+
+# ============================================================================
+# 4. MÉTRICAS FINALES (SOLO PRODUCTOS FIABLES)
+# ============================================================================
+print("4. MÉTRICAS FINALES EN TEST SET (SOLO PRODUCTOS FIABLES)")
 print("-" * 80)
 
 # Regresión
@@ -305,7 +350,7 @@ if len(df_clf_test) > 0:
 # ============================================================================
 # 5. GUARDAR RESULTADOS
 # ============================================================================
-print("4. GUARDANDO RESULTADOS")
+print("5. GUARDANDO RESULTADOS")
 print("-" * 80)
 
 # Métricas
@@ -322,7 +367,7 @@ print()
 # ============================================================================
 # 6. VISUALIZACIONES
 # ============================================================================
-print("5. VISUALIZACIONES")
+print("6. VISUALIZACIONES")
 print("-" * 80)
 
 # A. Actual vs Predicted (Regresión) - Mejor producto
@@ -412,7 +457,7 @@ print()
 # ============================================================================
 # 7. FEATURE IMPORTANCE (Ejemplo con mejor producto)
 # ============================================================================
-print("6. FEATURE IMPORTANCE")
+print("7. FEATURE IMPORTANCE")
 print("-" * 80)
 
 if len(df_reg_test) > 0:
