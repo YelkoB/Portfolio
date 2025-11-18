@@ -387,23 +387,20 @@ if len(df_clf_test) > 0:
 if len(df_reg_test) > 0:
     df_pred_reg_all = df_predictions[df_predictions['task'] == 'regression'].copy()
 
-    fig, axes = plt.subplots(1, 2, figsize=(15, 5))
+    # Distribución de errores
+    fig, ax = plt.subplots(figsize=FIGSIZE_STANDARD)
 
     # Histograma de errores
-    axes[0].hist(df_pred_reg_all['error'], bins=50, color=COLORS['info'],
+    ax.hist(df_pred_reg_all['error'], bins=50, color=COLORS['info'],
                 alpha=0.7, edgecolor='black')
-    axes[0].axvline(0, color='red', linestyle='--', linewidth=2, label='Cero')
-    axes[0].set_title('Distribución de Errores - Regresión', fontsize=12, fontweight='bold')
-    axes[0].set_xlabel('Error (Actual - Predicho)')
-    axes[0].set_ylabel('Frecuencia')
-    axes[0].legend()
-    axes[0].grid(True, alpha=0.3)
-
-    # QQ Plot (normalidad de errores)
-    from scipy import stats as sp_stats
-    sp_stats.probplot(df_pred_reg_all['error'].dropna(), dist="norm", plot=axes[1])
-    axes[1].set_title('Q-Q Plot - Normalidad de Errores', fontsize=12, fontweight='bold')
-    axes[1].grid(True, alpha=0.3)
+    ax.axvline(0, color='red', linestyle='--', linewidth=2, label='Error = 0')
+    ax.axvline(df_pred_reg_all['error'].mean(), color='green', linestyle='--',
+               linewidth=2, label=f'Media = {df_pred_reg_all["error"].mean():.1f}')
+    ax.set_title('Distribución de Errores de Predicción', fontsize=12, fontweight='bold')
+    ax.set_xlabel('Error (Actual - Predicho)')
+    ax.set_ylabel('Frecuencia')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
     plt.savefig(FIGURES / '04_error_distribution.png', dpi=100, bbox_inches='tight')
