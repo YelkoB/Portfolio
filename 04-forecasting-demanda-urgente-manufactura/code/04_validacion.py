@@ -104,22 +104,20 @@ feature_cols = [
 feature_cols = [f for f in feature_cols if f in df.columns]
 
 # ============================================================================
-# 2. TRAIN/VAL/TEST SPLIT
+# 2. TRAIN/TEST SPLIT (80/20)
 # ============================================================================
 
-def temporal_split(product_df, train_pct=0.70, val_pct=0.15):
-    """Split temporal sin data leakage"""
+def temporal_split(product_df, train_pct=0.80):
+    """Split temporal sin data leakage: 80% Train, 20% Test"""
     df_sorted = product_df.sort_values('week_start').reset_index(drop=True)
     n = len(df_sorted)
 
     train_end = int(n * train_pct)
-    val_end = int(n * (train_pct + val_pct))
 
     train = df_sorted.iloc[:train_end]
-    val = df_sorted.iloc[train_end:val_end]
-    test = df_sorted.iloc[val_end:]
+    test = df_sorted.iloc[train_end:]
 
-    return train, val, test
+    return train, test
 
 
 # ============================================================================
@@ -136,8 +134,8 @@ products = df['product_id'].unique()
 for product_id in tqdm(products, desc="Evaluando productos"):
     df_product = df[df['product_id'] == product_id]
 
-    # Split
-    train, val, test = temporal_split(df_product)
+    # Split 80/20
+    train, test = temporal_split(df_product)
 
     if len(test) < 5:
         continue
