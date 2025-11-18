@@ -51,12 +51,42 @@ print("-" * 80)
 df_metrics = pd.read_csv(DATA_SIMULATED / 'validation_metrics.csv')
 print(f"✓ Métricas cargadas: {df_metrics.shape}")
 print(f"  Productos evaluados: {df_metrics['product_id'].nunique()}")
+
+# Cargar predicciones para contar muestras por producto
+df_predictions = pd.read_csv(DATA_SIMULATED / 'test_predictions.csv')
+print(f"✓ Predicciones cargadas: {df_predictions.shape}")
+
+# Contar muestras de test por producto
+test_samples = df_predictions.groupby(['product_id', 'task']).size().reset_index(name='test_samples')
+print(f"✓ Conteo de muestras por producto calculado")
 print()
 
 # ============================================================================
-# 2. EXTRAER INFORMACIÓN DE PRODUCTO
+# 2. FUSIONAR CON CONTEO DE MUESTRAS Y FILTRAR
 # ============================================================================
-print("2. PARSEANDO INFORMACIÓN DE PRODUCTOS")
+print("2. FUSIONANDO DATOS Y FILTRANDO PRODUCTOS")
+print("-" * 80)
+
+# Fusionar métricas con conteo de muestras
+df_metrics = df_metrics.merge(test_samples, on=['product_id', 'task'], how='left')
+df_metrics['test_samples'] = df_metrics['test_samples'].fillna(0).astype(int)
+
+# Filtrar productos con pocas muestras
+MIN_TEST_SAMPLES = 20
+df_metrics_original = df_metrics.copy()
+df_metrics = df_metrics[df_metrics['test_samples'] >= MIN_TEST_SAMPLES].copy()
+
+productos_eliminados = len(df_metrics_original) - len(df_metrics)
+print(f"⚠️  Mínimo de muestras en test: {MIN_TEST_SAMPLES}")
+print(f"✓ Productos antes del filtro: {len(df_metrics_original)}")
+print(f"✓ Productos después del filtro: {len(df_metrics)}")
+print(f"❌ Productos eliminados (pocas muestras): {productos_eliminados} ({productos_eliminados/len(df_metrics_original)*100:.1f}%)")
+print()
+
+# ============================================================================
+# 3. EXTRAER INFORMACIÓN DE PRODUCTO
+# ============================================================================
+print("3. PARSEANDO INFORMACIÓN DE PRODUCTOS")
 print("-" * 80)
 
 # Extraer categoría y estado del product_id
@@ -69,9 +99,9 @@ print(f"✓ Estados únicos: {df_metrics['state'].unique()}")
 print()
 
 # ============================================================================
-# 3. RANKING DE PRODUCTOS POR AUC
+# 4. RANKING DE PRODUCTOS POR AUC
 # ============================================================================
-print("3. RANKING DE PRODUCTOS")
+print("4. RANKING DE PRODUCTOS (Solo productos con ≥{MIN_TEST_SAMPLES} muestras)")
 print("-" * 80)
 
 # Filtrar solo clasificación
@@ -121,9 +151,9 @@ for idx, row in df_clf_sorted.tail(20).iterrows():
 print()
 
 # ============================================================================
-# 4. ANÁLISIS POR CATEGORÍA
+# 5. ANÁLISIS POR CATEGORÍA
 # ============================================================================
-print("4. ANÁLISIS POR CATEGORÍA")
+print("5. ANÁLISIS POR CATEGORÍA")
 print("-" * 80)
 
 category_stats = df_clf.groupby('category')['auc'].agg([
@@ -138,9 +168,9 @@ print(category_stats.to_string())
 print()
 
 # ============================================================================
-# 5. ANÁLISIS POR ESTADO
+# 6. ANÁLISIS POR ESTADO
 # ============================================================================
-print("5. ANÁLISIS POR ESTADO")
+print("6. ANÁLISIS POR ESTADO")
 print("-" * 80)
 
 state_stats = df_clf.groupby('state')['auc'].agg([
@@ -155,9 +185,9 @@ print(state_stats.to_string())
 print()
 
 # ============================================================================
-# 6. ANÁLISIS COMBINADO CATEGORÍA × ESTADO
+# 7. ANÁLISIS COMBINADO CATEGORÍA × ESTADO
 # ============================================================================
-print("6. ANÁLISIS COMBINADO CATEGORÍA × ESTADO")
+print("7. ANÁLISIS COMBINADO CATEGORÍA × ESTADO")
 print("-" * 80)
 
 pivot_mean = df_clf.pivot_table(values='auc', index='category', columns='state', aggfunc='mean')
@@ -171,19 +201,22 @@ print(pivot_count.fillna(0).astype(int).to_string())
 print()
 
 # ============================================================================
-# 7. GUARDAR RESULTADOS
+# 8. GUARDAR RESULTADOS
 # ============================================================================
-print("7. GUARDANDO RESULTADOS")
+print("8. GUARDANDO RESULTADOS")
 print("-" * 80)
 
-# Guardar ranking completo
+# Guardar ranking completo (con número de muestras)
 df_clf_sorted.to_csv(DATA_SIMULATED / 'product_ranking_auc.csv', index=False)
 print(f"✓ Ranking guardado: product_ranking_auc.csv")
+print(f"  Incluye columna 'test_samples' para transparencia")
 
 # Guardar productos recomendados (AUC >= 0.70)
 df_recommended = df_clf_sorted[df_clf_sorted['auc'] >= 0.70].copy()
 df_recommended.to_csv(DATA_SIMULATED / 'products_recommended.csv', index=False)
 print(f"✓ Productos recomendados: {len(df_recommended)} productos con AUC ≥ 0.70")
+print(f"  Rango de muestras: {df_recommended['test_samples'].min()}-{df_recommended['test_samples'].max()}")
+print(f"  Media de muestras: {df_recommended['test_samples'].mean():.0f}")
 
 # Guardar productos NO recomendados (AUC < 0.60)
 df_not_recommended = df_clf_sorted[df_clf_sorted['auc'] < 0.60].copy()
@@ -192,9 +225,9 @@ print(f"✓ Productos NO recomendados: {len(df_not_recommended)} productos con A
 print()
 
 # ============================================================================
-# 8. VISUALIZACIONES
+# 9. VISUALIZACIONES
 # ============================================================================
-print("8. GENERANDO VISUALIZACIONES")
+print("9. GENERANDO VISUALIZACIONES")
 print("-" * 80)
 
 # 8.1 Distribución de AUC
