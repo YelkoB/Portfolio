@@ -222,7 +222,14 @@ for product_id in tqdm(products, desc="Evaluando productos"):
 
             # Predecir
             y_pred_clf = model.predict(X_test_clean)
-            y_pred_proba = model.predict_proba(X_test_clean)[:, 1]
+
+            # Manejar predict_proba cuando solo hay una clase (edge case)
+            y_pred_proba_full = model.predict_proba(X_test_clean)
+            if y_pred_proba_full.shape[1] == 2:
+                y_pred_proba = y_pred_proba_full[:, 1]
+            else:
+                # Solo hay una clase predicha - usar esa probabilidad
+                y_pred_proba = y_pred_proba_full[:, 0]
 
             # Métricas
             precision = precision_score(y_test_clf_clean, y_pred_clf, zero_division=0)
