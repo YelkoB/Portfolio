@@ -322,12 +322,27 @@ def train_random_forest_classification(X_train, y_train, X_val, y_val):
     y_val_clean = y_val[mask_val]
 
     # Validar que hay suficientes datos y ambas clases en train y val
-    if len(X_train_clean) < 10 or len(X_val_clean) < 5 or y_train_clean.sum() < 2 or y_val_clean.sum() < 1:
+    n_positive_train = y_train_clean.sum()
+    n_negative_train = len(y_train_clean) - n_positive_train
+    n_positive_val = y_val_clean.sum()
+    n_negative_val = len(y_val_clean) - n_positive_val
+
+    # Necesitamos al menos 2 ejemplos de cada clase en train y al menos 1 de cada clase en val
+    if (len(X_train_clean) < 10 or len(X_val_clean) < 5 or
+        n_positive_train < 2 or n_negative_train < 2 or
+        n_positive_val < 1 or n_negative_val < 1):
         return None, None, None
 
     model.fit(X_train_clean, y_train_clean)
     y_pred = model.predict(X_val_clean)
-    y_pred_proba = model.predict_proba(X_val_clean)[:, 1]
+
+    # Manejar predict_proba cuando solo hay una clase (edge case)
+    y_pred_proba_full = model.predict_proba(X_val_clean)
+    if y_pred_proba_full.shape[1] == 2:
+        y_pred_proba = y_pred_proba_full[:, 1]
+    else:
+        # Solo hay una clase predicha - usar esa probabilidad
+        y_pred_proba = y_pred_proba_full[:, 0]
 
     # Métricas
     precision = precision_score(y_val_clean, y_pred, zero_division=0)
@@ -372,12 +387,27 @@ def train_xgboost_classification(X_train, y_train, X_val, y_val):
     y_val_clean = y_val[mask_val]
 
     # Validar que hay suficientes datos y ambas clases en train y val
-    if len(X_train_clean) < 10 or len(X_val_clean) < 5 or y_train_clean.sum() < 2 or y_val_clean.sum() < 1:
+    n_positive_train = y_train_clean.sum()
+    n_negative_train = len(y_train_clean) - n_positive_train
+    n_positive_val = y_val_clean.sum()
+    n_negative_val = len(y_val_clean) - n_positive_val
+
+    # Necesitamos al menos 2 ejemplos de cada clase en train y al menos 1 de cada clase en val
+    if (len(X_train_clean) < 10 or len(X_val_clean) < 5 or
+        n_positive_train < 2 or n_negative_train < 2 or
+        n_positive_val < 1 or n_negative_val < 1):
         return None, None, None
 
     model.fit(X_train_clean, y_train_clean)
     y_pred = model.predict(X_val_clean)
-    y_pred_proba = model.predict_proba(X_val_clean)[:, 1]
+
+    # Manejar predict_proba cuando solo hay una clase (edge case)
+    y_pred_proba_full = model.predict_proba(X_val_clean)
+    if y_pred_proba_full.shape[1] == 2:
+        y_pred_proba = y_pred_proba_full[:, 1]
+    else:
+        # Solo hay una clase predicha - usar esa probabilidad
+        y_pred_proba = y_pred_proba_full[:, 0]
 
     # Métricas
     precision = precision_score(y_val_clean, y_pred, zero_division=0)
