@@ -112,34 +112,20 @@ print()
 print(f"✓ Ranking cargado: {df_ranking.shape}")
 print()
 
-# Seleccionar productos para entrenar
-# None = TODOS los productos, o especificar número (ej: 100)
-TOP_N = None  # Cambiar a número si quieres limitar (ej: TOP_N = 100)
+# Seleccionar TOP 25 productos
+TOP_N = 25
+top_products = df_ranking.head(TOP_N)['product_id'].tolist()
 
-if TOP_N is None:
-    # Usar TODOS los productos
-    top_products = df_ranking['product_id'].tolist()
-    print(f"✅ Procesando TODOS los {len(top_products)} productos del ranking")
-    print(f"⚠️  Esto puede tomar tiempo considerable (estimado: {len(top_products) * 1.5 / 60:.0f} minutos)")
-    print()
-    # Mostrar solo top 10 y bottom 10
-    print("TOP 10 productos más predecibles:")
-    for idx, row in df_ranking.head(10).iterrows():
-        print(f"  {idx+1}. {row['product_id']:30s} | Score: {row['predictability_score']:5.0f} | "
-              f"Urgencias: {row['n_urgencies']:3.0f} ({row['urgency_rate']*100:5.1f}%)")
-else:
-    # Usar TOP N productos
-    top_products = df_ranking.head(TOP_N)['product_id'].tolist()
-    print(f"TOP {TOP_N} productos seleccionados:")
-    for idx, row in df_ranking.head(TOP_N).iterrows():
-        print(f"  {idx+1}. {row['product_id']:30s} | Score: {row['predictability_score']:5.0f} | "
-              f"Urgencias: {row['n_urgencias']:3.0f} ({row['urgency_rate']*100:5.1f}%)")
+print(f"TOP {TOP_N} productos seleccionados:")
+for idx, row in df_ranking.head(TOP_N).iterrows():
+    print(f"  {idx+1}. {row['product_id']:30s} | Score: {row['predictability_score']:5.0f} | "
+          f"Urgencias: {row['n_urgencies']:3.0f} ({row['urgency_rate']*100:5.1f}%)")
 print()
 
-# Filtrar solo productos seleccionados
+# Filtrar solo TOP productos
 df_top = df[df['product_id'].isin(top_products)].copy()
 
-print(f"✓ Datos filtrados:")
+print(f"✓ Datos filtrados a TOP {TOP_N}:")
 print(f"  Registros: {len(df_top):,}")
 print(f"  Productos: {df_top['product_id'].nunique()}")
 print()
