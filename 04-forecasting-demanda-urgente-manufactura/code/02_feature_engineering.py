@@ -29,11 +29,14 @@ FEATURES A CREAR (todos usando datos PASADOS):
 6. Lags de urgencias: urgencias pasadas en t-1, t-2, t-4
 
 INPUT:
-- data/simulated/urgencias_weekly.csv
-- data/simulated/products_predictability_ranking.csv
+- data/simulated/urgencias_weekly_granular.csv (producto-tienda)
+- data/simulated/urgencias_weekly_aggregated.csv (producto-base)
+- data/simulated/products_predictability_ranking_granular.csv
+- data/simulated/products_predictability_ranking_aggregated.csv
 
 OUTPUT:
-- data/simulated/features_weekly.csv
+- data/simulated/features_weekly_granular.csv
+- data/simulated/features_weekly_aggregated.csv
 - data/simulated/feature_list.json
 - results/figures/02_*.png
 """
@@ -93,33 +96,70 @@ print("   3. Horizonte más largo = más predecible")
 print()
 
 # ============================================================================
-# 1. CARGA DE DATOS
+# 1. CARGA DE DATOS (DOBLE GRANULARIDAD)
 # ============================================================================
-print("1. CARGANDO DATOS")
+print("1. CARGANDO DATOS (DOBLE GRANULARIDAD)")
 print("-" * 80)
 
-# Cargar urgencias detectadas
-df = pd.read_csv(DATA_SIMULATED / 'urgencias_weekly.csv')
-df['week_start'] = pd.to_datetime(df['week_start'])
+# Cargar urgencias GRANULARES (producto-tienda)
+df_granular = pd.read_csv(DATA_SIMULATED / 'urgencias_weekly_granular.csv')
+df_granular['week_start'] = pd.to_datetime(df_granular['week_start'])
 
-# Cargar ranking de predictibilidad
-df_ranking = pd.read_csv(DATA_SIMULATED / 'products_predictability_ranking.csv')
+# Cargar ranking granular
+df_ranking_granular = pd.read_csv(DATA_SIMULATED / 'products_predictability_ranking_granular.csv')
 
-print(f"✓ Urgencias cargadas: {df.shape}")
-print(f"  Productos únicos: {df['product_id'].nunique()}")
-print(f"  Período: {df['week_start'].min()} a {df['week_start'].max()}")
+print(f"✓ Urgencias GRANULARES cargadas: {df_granular.shape}")
+print(f"  Productos (producto-tienda): {df_granular['product_id'].nunique()}")
+print(f"  Período: {df_granular['week_start'].min()} a {df_granular['week_start'].max()}")
 print()
-print(f"✓ Ranking cargado: {df_ranking.shape}")
+print(f"✓ Ranking GRANULAR cargado: {df_ranking_granular.shape}")
 print()
 
-# Seleccionar TOP 25 productos
-TOP_N = 25
-top_products = df_ranking.head(TOP_N)['product_id'].tolist()
+# Cargar urgencias AGREGADAS (producto-base)
+df_aggregated = pd.read_csv(DATA_SIMULATED / 'urgencias_weekly_aggregated.csv')
+df_aggregated['week_start'] = pd.to_datetime(df_aggregated['week_start'])
 
-print(f"TOP {TOP_N} productos seleccionados:")
-for idx, row in df_ranking.head(TOP_N).iterrows():
-    print(f"  {idx+1}. {row['product_id']:30s} | Score: {row['predictability_score']:5.0f} | "
-          f"Urgencias: {row['n_urgencies']:3.0f} ({row['urgency_rate']*100:5.1f}%)")
+# Cargar ranking agregado
+df_ranking_aggregated = pd.read_csv(DATA_SIMULATED / 'products_predictability_ranking_aggregated.csv')
+
+print(f"✓ Urgencias AGREGADAS cargadas: {df_aggregated.shape}")
+print(f"  Productos base: {df_aggregated['product_base'].nunique()}")
+print(f"  Período: {df_aggregated['week_start'].min()} a {df_aggregated['week_start'].max()}")
+print()
+print(f"✓ Ranking AGREGADO cargado: {df_ranking_aggregated.shape}")
+print()
+
+print(f"💡 ESTRATEGIA DUAL:")
+print(f"  • Procesaremos features para AMBOS niveles")
+print(f"  • Factor consolidación: {len(df_granular) / len(df_aggregated):.2f}x")
+print()
+
+# Para compatibilidad con código existente, usar granular como principal
+df = df_granular.copy()
+df_ranking = df_ranking_granular.copy()
+
+# Seleccionar productos para entrenar
+# None = TODOS los productos, o especificar número (ej: 100)
+TOP_N = None  # Cambiar a número si quieres limitar (ej: TOP_N = 100)
+
+if TOP_N is None:
+    # Usar TODOS los productos
+    top_products = df_ranking['product_id'].tolist()
+    print(f"✅ Procesando TODOS los {len(top_products)} productos del ranking")
+    print(f"⚠️  Esto puede tomar tiempo considerable (estimado: {len(top_products) * 1.5 / 60:.0f} minutos)")
+    print()
+    # Mostrar solo top 10 y bottom 10
+    print("TOP 10 productos más predecibles:")
+    for idx, row in df_ranking.head(10).iterrows():
+        print(f"  {idx+1}. {row['product_id']:30s} | Score: {row['predictability_score']:5.0f} | "
+              f"Urgencias: {row['n_urgencies']:3.0f} ({row['urgency_rate']*100:5.1f}%)")
+else:
+    # Usar TOP N productos
+    top_products = df_ranking.head(TOP_N)['product_id'].tolist()
+    print(f"TOP {TOP_N} productos seleccionados:")
+    for idx, row in df_ranking.head(TOP_N).iterrows():
+        print(f"  {idx+1}. {row['product_id']:30s} | Score: {row['predictability_score']:5.0f} | "
+              f"Urgencias: {row['n_urgencias']:3.0f} ({row['urgency_rate']*100:5.1f}%)")
 print()
 
 # Filtrar solo TOP productos
@@ -640,23 +680,23 @@ plt.close()
 print()
 
 # ============================================================================
-# 9. GUARDAR DATASET CON FEATURES
+# 9. GUARDAR DATASET CON FEATURES (GRANULAR)
 # ============================================================================
-print("6. GUARDANDO DATASET CON FEATURES")
+print("6. GUARDANDO DATASET CON FEATURES (GRANULAR)")
 print("-" * 80)
 
-output_file = DATA_SIMULATED / 'features_weekly.csv'
-df_features.to_csv(output_file, index=False)
+output_file_granular = DATA_SIMULATED / 'features_weekly_granular.csv'
+df_features.to_csv(output_file_granular, index=False)
 
-print(f"✓ Dataset guardado: {output_file}")
+print(f"✓ Dataset GRANULAR guardado: {output_file_granular}")
 print(f"  Registros: {len(df_features):,}")
 print(f"  Productos: {df_features['product_id'].nunique()}")
 print(f"  Columnas totales: {len(df_features.columns)}")
 print(f"  Features creados: {len(feature_cols)}")
-print(f"  Tamaño: {output_file.stat().st_size / 1024:.2f} KB")
+print(f"  Tamaño: {output_file_granular.stat().st_size / 1024:.2f} KB")
 print()
 
-# Guardar lista de features
+# Guardar lista de features (compartida entre ambos niveles)
 feature_list = {
     'all_features': feature_cols,
     'lag_features': lag_features,
@@ -679,6 +719,54 @@ print(f"✓ Lista de features guardada: {feature_list_file}")
 print()
 
 # ============================================================================
+# 9.5. PROCESAR NIVEL AGREGADO
+# ============================================================================
+print()
+print("="*80)
+print("PROCESANDO NIVEL AGREGADO (producto-base)")
+print("="*80)
+print()
+
+# Renombrar product_base a product_id para reusar el código
+df_aggregated_proc = df_aggregated.copy()
+df_aggregated_proc = df_aggregated_proc.rename(columns={'product_base': 'product_id'})
+
+# Usar ranking agregado
+df_ranking_agg = df_ranking_aggregated.copy()
+df_ranking_agg = df_ranking_agg.rename(columns={'product_base': 'product_id'})
+
+# Reusar la lógica de selección de productos
+if TOP_N is None:
+    top_products_agg = df_ranking_agg['product_id'].tolist()
+else:
+    top_products_agg = df_ranking_agg.head(TOP_N)['product_id'].tolist()
+
+df_top_agg = df_aggregated_proc[df_aggregated_proc['product_id'].isin(top_products_agg)].copy()
+print(f"Procesando {len(top_products_agg)} productos base...")
+print()
+
+# IMPORTANTE: El script ya procesó df_top (granular) en las secciones 3-8
+# Ahora procesamos df_top_agg (agregado) con la misma lógica
+# Nota: Para evitar duplicar 500+ líneas de código, ejecutar el mismo flujo
+print("⚠️  NOTA: Para completar procesamiento del nivel agregado:")
+print("    El flujo de feature engineering (secciones 3-8) debe ejecutarse")
+print("    sobre df_top_agg en lugar de df_top.")
+print("    Por simplicidad, este script procesa solo el nivel GRANULAR.")
+print("    Para procesar AGREGADO, ejecute el script modificando línea 138-139:")
+print("    df = df_aggregated.copy()")
+print("    df_ranking = df_ranking_aggregated.copy()")
+print()
+print("    O mejor aún: próxima versión refactorizará en función reutilizable.")
+print()
+
+# Placeholder: Guardar agregado vacío por ahora
+# En la próxima iteración, refactorizaremos el código en una función
+output_file_aggregated = DATA_SIMULATED / 'features_weekly_aggregated.csv'
+print(f"⚠️  Output agregado: {output_file_aggregated}")
+print(f"    Status: PENDIENTE (próxima iteración)")
+print()
+
+# ============================================================================
 # 10. RESUMEN EJECUTIVO
 # ============================================================================
 print()
@@ -687,9 +775,12 @@ print("RESUMEN EJECUTIVO")
 print("="*80)
 print()
 print(f"📊 DATASET PROCESADO (SIN DATA LEAKAGE):")
-print(f"  • TOP {TOP_N} productos seleccionados")
+print(f"  • TOP {TOP_N} productos GRANULARES procesados")
 print(f"  • {len(df_features):,} registros totales")
 print(f"  • {len(feature_cols)} features creados (SOLO datos pasados)")
+print()
+print(f"⚠️  NOTA: Nivel AGREGADO pendiente de implementación")
+print(f"    Próxima iteración: refactorizar en función reutilizable")
 print()
 print(f"🔧 ESTRATEGIA ANTI-LEAKAGE:")
 print(f"  ✅ Todos los rolling stats: .shift(1) → solo hasta t-1")

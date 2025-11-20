@@ -233,45 +233,87 @@ def calculate_predictability_score(product_df, product_id):
 
 
 # ============================================================================
-# 3. PROCESAR TODOS LOS PRODUCTOS
+# 3. FUNCIÓN PARA PROCESAR DATASET (GRANULAR O AGREGADO)
 # ============================================================================
-print("2. PROCESANDO PRODUCTOS INDIVIDUALMENTE")
-print("-" * 80)
 
-all_products_data = []
-all_metrics = []
+def process_dataset(df_input, id_column, dataset_name):
+    """
+    Procesa un dataset (granular o agregado) y detecta urgencias.
 
-product_ids = df['product_id'].unique()
-print(f"Procesando {len(product_ids)} productos...")
-print()
+    Args:
+        df_input: DataFrame con datos de ventas
+        id_column: Nombre de la columna de identificación ('product_id' o 'product_base')
+        dataset_name: Nombre descriptivo del dataset
 
-for product_id in tqdm(product_ids, desc="Detectando urgencias"):
-    # Filtrar datos del producto
-    product_df = df[df['product_id'] == product_id].copy()
+    Returns:
+        tuple: (df_all, df_metrics) - DataFrame completo y métricas
+    """
+    print()
+    print("="*80)
+    print(f"PROCESANDO DATASET: {dataset_name}")
+    print("="*80)
+    print()
 
-    # Detectar urgencias
-    product_df = detect_urgencies_for_product(product_df, product_id)
+    all_products_data = []
+    all_metrics = []
 
-    # Calcular métricas de predictibilidad
-    metrics = calculate_predictability_score(product_df, product_id)
+    product_ids = df_input[id_column].unique()
+    print(f"Procesando {len(product_ids)} productos...")
+    print()
 
-    # Guardar
-    all_products_data.append(product_df)
-    all_metrics.append(metrics)
+    for product_id in tqdm(product_ids, desc=f"Detectando urgencias ({dataset_name})"):
+        # Filtrar datos del producto
+        product_df = df_input[df_input[id_column] == product_id].copy()
 
-# Concatenar todos los productos
-df_all = pd.concat(all_products_data, ignore_index=True)
+        # Detectar urgencias
+        product_df = detect_urgencies_for_product(product_df, product_id)
 
-# Crear DataFrame de métricas
-df_metrics = pd.DataFrame(all_metrics)
-df_metrics = df_metrics.sort_values('predictability_score', ascending=False).reset_index(drop=True)
+        # Calcular métricas de predictibilidad
+        metrics = calculate_predictability_score(product_df, product_id)
 
-print()
-print(f"✓ Procesamiento completado")
-print(f"  Total productos procesados: {len(df_metrics)}")
-print(f"  Total urgencias detectadas: {df_all['is_urgent'].sum():,}")
-print(f"  Tasa promedio de urgencias: {df_all['is_urgent'].mean()*100:.1f}%")
-print()
+        # Guardar
+        all_products_data.append(product_df)
+        all_metrics.append(metrics)
+
+    # Concatenar todos los productos
+    df_all = pd.concat(all_products_data, ignore_index=True)
+
+    # Crear DataFrame de métricas
+    df_metrics = pd.DataFrame(all_metrics)
+    df_metrics = df_metrics.sort_values('predictability_score', ascending=False).reset_index(drop=True)
+
+    print()
+    print(f"✓ Procesamiento completado ({dataset_name})")
+    print(f"  Total productos procesados: {len(df_metrics)}")
+    print(f"  Total urgencias detectadas: {df_all['is_urgent'].sum():,}")
+    print(f"  Tasa promedio de urgencias: {df_all['is_urgent'].mean()*100:.1f}%")
+    print()
+
+    return df_all, df_metrics
+
+
+# ============================================================================
+# 4. PROCESAR AMBOS NIVELES DE GRANULARIDAD
+# ============================================================================
+
+# Procesar nivel GRANULAR (producto-tienda)
+df_all_granular, df_metrics_granular = process_dataset(
+    df_granular,
+    'product_id',
+    'GRANULAR (producto-tienda)'
+)
+
+# Procesar nivel AGREGADO (producto-base)
+df_all_aggregated, df_metrics_aggregated = process_dataset(
+    df_aggregated,
+    'product_base',
+    'AGREGADO (producto-base)'
+)
+
+# Para compatibilidad con código existente (análisis y visualizaciones)
+# Usar granular como referencia principal
+df_all = df_all_granular.copy()
+df_metrics = df_metrics_granular.copy()
 
 # ============================================================================
 # 4. RANKING DE PRODUCTOS POR PREDICTIBILIDAD
@@ -493,40 +535,53 @@ plt.close()
 print()
 
 # ============================================================================
-# 10. GUARDAR DATASETS
+# 10. GUARDAR DATASETS (AMBOS NIVELES)
 # ============================================================================
-print("6. GUARDANDO DATOS")
+print("6. GUARDANDO DATOS (AMBOS NIVELES)")
 print("-" * 80)
 
-# 1. Dataset completo con urgencias (todos los productos)
-output_file = DATA_SIMULATED / 'urgencias_weekly.csv'
-df_all_output = df_all[[
-    'product_id', 'item_id', 'store_id',
-    'week_id', 'week_start', 'week_num', 'year', 'month', 'quarter',
-    'week_of_year', 'week_of_month',
-    'total_sales', 'total_revenue', 'avg_price',
-    'percentile_threshold', 'growth_rate',
-    'urgent_criterio_a', 'urgent_criterio_b', 'is_urgent'
-]].copy()
+# Columnas para guardar (adaptadas según nivel)
+def save_urgencies_dataset(df_all_input, df_metrics_input, suffix, id_column):
+    """Guarda datasets de urgencias con sufijo apropiado."""
 
-df_all_output.to_csv(output_file, index=False)
+    # Identificar columnas disponibles
+    base_cols = [id_column, 'week_id', 'week_start', 'week_num', 'year', 'month', 'quarter',
+                 'week_of_year', 'week_of_month',
+                 'total_sales', 'total_revenue', 'avg_price',
+                 'percentile_threshold', 'growth_rate',
+                 'urgent_criterio_a', 'urgent_criterio_b', 'is_urgent']
 
-print(f"✓ Urgencias guardadas: {output_file}")
-print(f"  Registros: {len(df_all_output):,}")
-print(f"  Productos: {df_all_output['product_id'].nunique()}")
-print(f"  Urgencias totales: {df_all_output['is_urgent'].sum():,}")
-print(f"  Tamaño: {output_file.stat().st_size / 1024:.2f} KB")
-print()
+    # Agregar columnas opcionales si existen
+    optional_cols = ['item_id', 'store_id', 'product_base']
+    cols_to_save = [col for col in base_cols + optional_cols if col in df_all_input.columns]
 
-# 2. Ranking de productos por predictibilidad
-ranking_file = DATA_SIMULATED / 'products_predictability_ranking.csv'
-df_metrics.to_csv(ranking_file, index=False)
+    # 1. Dataset completo con urgencias
+    output_file = DATA_SIMULATED / f'urgencias_weekly_{suffix}.csv'
+    df_output = df_all_input[cols_to_save].copy()
+    df_output.to_csv(output_file, index=False)
 
-print(f"✓ Ranking guardado: {ranking_file}")
-print(f"  Total productos: {len(df_metrics)}")
-print(f"  TOP {TOP_N} seleccionados para análisis profundo")
-print(f"  Tamaño: {ranking_file.stat().st_size / 1024:.2f} KB")
-print()
+    print(f"✓ Urgencias {suffix} guardadas: {output_file}")
+    print(f"  Registros: {len(df_output):,}")
+    print(f"  Productos: {df_output[id_column].nunique()}")
+    print(f"  Urgencias totales: {df_output['is_urgent'].sum():,}")
+    print(f"  Tamaño: {output_file.stat().st_size / 1024:.2f} KB")
+    print()
+
+    # 2. Ranking de productos por predictibilidad
+    ranking_file = DATA_SIMULATED / f'products_predictability_ranking_{suffix}.csv'
+    df_metrics_input.to_csv(ranking_file, index=False)
+
+    print(f"✓ Ranking {suffix} guardado: {ranking_file}")
+    print(f"  Total productos: {len(df_metrics_input)}")
+    print(f"  TOP {TOP_N} seleccionados para análisis profundo")
+    print(f"  Tamaño: {ranking_file.stat().st_size / 1024:.2f} KB")
+    print()
+
+# Guardar nivel GRANULAR
+save_urgencies_dataset(df_all_granular, df_metrics_granular, 'granular', 'product_id')
+
+# Guardar nivel AGREGADO
+save_urgencies_dataset(df_all_aggregated, df_metrics_aggregated, 'aggregated', 'product_base')
 
 # ============================================================================
 # 11. RESUMEN EJECUTIVO
@@ -565,26 +620,40 @@ if len(ventas_urgente) > 0 and len(ventas_normal) > 0:
     print(f"    Ratio: {ventas_urgente.mean() / ventas_normal.mean():.2f}x")
 print()
 print(f"📁 OUTPUTS GENERADOS:")
-print(f"  • {output_file.name} - Todas las urgencias por producto")
-print(f"  • {ranking_file.name} - Ranking de predictibilidad")
-print(f"  • 01_descomposicion_temporal.png")
-print(f"  • 01_deteccion_urgencias.png")
-print(f"  • 01_patrones_temporales_urgencias.png")
-print(f"  • 01_distribucion_urgente_vs_normal.png")
+print(f"  GRANULAR (producto-tienda):")
+print(f"    • urgencias_weekly_granular.csv - Todas las urgencias")
+print(f"    • products_predictability_ranking_granular.csv - Ranking")
+print()
+print(f"  AGREGADO (producto-base):")
+print(f"    • urgencias_weekly_aggregated.csv - Todas las urgencias")
+print(f"    • products_predictability_ranking_aggregated.csv - Ranking")
+print()
+print(f"  VISUALIZACIONES:")
+print(f"    • 01_descomposicion_temporal.png")
+print(f"    • 01_deteccion_urgencias.png")
+print(f"    • 01_patrones_temporales_urgencias.png")
+print(f"    • 01_distribucion_urgente_vs_normal.png")
 print()
 print("="*80)
-print("✓ ANÁLISIS COMPLETADO")
+print("✓ ANÁLISIS COMPLETADO - DOBLE GRANULARIDAD")
 print("="*80)
 print()
 print("CONCLUSIÓN:")
-print(f"  ✓ Procesados {len(df_metrics)} productos del dataset M5")
+print(f"  ✓ Procesados {len(df_metrics_granular)} productos granulares (producto-tienda)")
+print(f"  ✓ Procesados {len(df_metrics_aggregated)} productos agregados (producto-base)")
 print(f"  ✓ Identificados TOP {TOP_N} productos con urgencias más predecibles")
 print(f"  ✓ Las urgencias detectadas muestran patrones estacionales claros")
 print(f"  ✓ Validada la hipótesis: urgencias percibidas como aleatorias")
 print(f"     son en realidad PREDECIBLES mediante análisis temporal")
 print()
+print("💡 ESTRATEGIA DUAL:")
+print(f"  • GRANULAR: {len(df_metrics_granular)} productos con datos por tienda")
+print(f"  • AGREGADO: {len(df_metrics_aggregated)} productos base consolidados")
+print(f"  • Factor: {len(df_metrics_granular) / len(df_metrics_aggregated):.2f}x tiendas/producto")
+print(f"  • Scripts posteriores elegirán el mejor nivel por producto")
+print()
 print("PRÓXIMO PASO:")
-print(f"  → Feature engineering para TOP {TOP_N} productos")
-print(f"  → Modelización predictiva (ARIMA, Prophet, XGBoost)")
-print(f"  → Evaluación comparativa de modelos")
+print(f"  → Feature engineering para AMBOS niveles de granularidad")
+print(f"  → Modelización predictiva (RF, XGBoost) en ambos niveles")
+print(f"  → Script 05 seleccionará estrategia óptima por producto")
 print()
