@@ -3,16 +3,30 @@
 ====================================
 
 OBJETIVO:
-Analizar rendimiento del modelo por producto individual para identificar:
-- Productos con mejor predicción (AUC > 0.70)
-- Productos donde NO funciona bien el modelo
-- Patrones por categoría (FOODS, HOUSEHOLD, HOBBIES)
-- Patrones por estado (CA, TX, WI)
+Analizar el rendimiento de cada producto individualmente, filtrar productos
+con datos insuficientes, y generar métricas confiables para análisis de ROI.
+
+ANÁLISIS:
+1. Cargar métricas de validación y predicciones de test
+2. Calcular estadísticas por producto (muestras, urgencias, distribución)
+3. Filtrar productos con datos insuficientes
+4. Identificar productos con mejor/peor rendimiento
+5. Análisis de segmentos (categoría, tienda)
+6. Generar dataset limpio para análisis de ROI
+
+CRITERIOS DE FILTRADO:
+- Mínimo 20 semanas en test set
+- Mínimo 5 urgencias observadas en test (para clasificación)
+- Al menos 1 modelo entrenado exitosamente
+
+INPUT:
+- data/simulated/validation_metrics.csv
+- data/simulated/test_predictions.csv
 
 OUTPUT:
-- Ranking de productos por AUC
-- Análisis por categoría y estado
-- Recomendaciones de implementación selectiva
+- data/simulated/product_analysis.csv - Análisis completo por producto
+- data/simulated/products_filtered.csv - Solo productos válidos
+- results/figures/06_*.png - Visualizaciones de análisis
 """
 
 import sys
@@ -25,8 +39,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import warnings
 
+# Importar configuración
 from config import (
-    DATA_SIMULATED, FIGURES,
+    DATA_SIMULATED, FIGURES, PROJECT_ROOT,
     FIGSIZE_STANDARD, FIGSIZE_WIDE,
     COLORS, RANDOM_SEED
 )
@@ -42,7 +57,7 @@ print("="*80)
 print()
 
 # ============================================================================
-# 1. CARGAR DATOS
+# 1. CARGA DE DATOS
 # ============================================================================
 print("1. CARGANDO DATOS")
 print("-" * 80)
@@ -52,174 +67,183 @@ df_metrics = pd.read_csv(DATA_SIMULATED / 'validation_metrics.csv')
 print(f"✓ Métricas cargadas: {df_metrics.shape}")
 print(f"  Productos evaluados: {df_metrics['product_id'].nunique()}")
 
-# Cargar predicciones para contar muestras por producto
-df_predictions = pd.read_csv(DATA_SIMULATED / 'test_predictions.csv')
-print(f"✓ Predicciones cargadas: {df_predictions.shape}")
+# Cargar predicciones
+df_preds = pd.read_csv(DATA_SIMULATED / 'test_predictions.csv')
+print(f"✓ Predicciones cargadas: {len(df_preds):,}")
 
-# Contar muestras de test por producto y task
-test_samples = df_predictions.groupby(['product_id', 'task']).size().reset_index(name='test_samples')
-
-# Contar urgencias (actual=1) para clasificación
-df_pred_clf = df_predictions[df_predictions['task'] == 'classification'].copy()
-urgencias_test = df_pred_clf.groupby('product_id')['actual'].sum().reset_index(name='urgencias_test')
-
-print(f"✓ Conteo de muestras por producto calculado")
-print(f"✓ Conteo de urgencias en test calculado")
 print()
 
 # ============================================================================
-# 2. FUSIONAR CON CONTEO DE MUESTRAS/URGENCIAS Y FILTRAR
+# 2. CALCULAR ESTADÍSTICAS POR PRODUCTO
 # ============================================================================
-print("2. FUSIONANDO DATOS Y FILTRANDO PRODUCTOS")
+print("2. CALCULANDO ESTADÍSTICAS POR PRODUCTO")
 print("-" * 80)
 
-# Fusionar métricas con conteo de muestras
-df_metrics = df_metrics.merge(test_samples, on=['product_id', 'task'], how='left')
-df_metrics['test_samples'] = df_metrics['test_samples'].fillna(0).astype(int)
+# Calcular estadísticas desde las predicciones
+product_stats = df_preds.groupby(['product_id', 'task']).agg({
+    'week_start': 'count',  # número de semanas
+    'actual': ['sum', 'mean', 'std']
+}).reset_index()
 
-# Fusionar con conteo de urgencias para clasificación
-df_metrics = df_metrics.merge(urgencias_test, on='product_id', how='left')
-df_metrics['urgencias_test'] = df_metrics['urgencias_test'].fillna(0).astype(int)
+# Aplanar columnas multi-index
+product_stats.columns = ['product_id', 'task', 'n_weeks', 'sum_actual', 'mean_actual', 'std_actual']
 
-# Criterios de filtrado (mismos que en 04 y 05)
+# Separar regresión y clasificación
+regression_stats = product_stats[product_stats['task'] == 'regression'][['product_id', 'n_weeks']].copy()
+regression_stats.columns = ['product_id', 'test_samples_reg']
+
+classification_stats = product_stats[product_stats['task'] == 'classification'].copy()
+classification_stats['test_urgencies'] = classification_stats['sum_actual'].astype(int)
+classification_stats = classification_stats[['product_id', 'n_weeks', 'test_urgencies']]
+classification_stats.columns = ['product_id', 'test_samples_clf', 'test_urgencies']
+
+print(f"✓ Estadísticas de regresión calculadas: {len(regression_stats)} productos")
+print(f"✓ Estadísticas de clasificación calculadas: {len(classification_stats)} productos")
+print()
+
+# ============================================================================
+# 3. FUSIONAR DATOS
+# ============================================================================
+print("3. FUSIONANDO DATOS")
+print("-" * 80)
+
+# Merge con métricas
+df_analysis = df_metrics.copy()
+
+# Añadir estadísticas de regresión
+df_analysis = df_analysis.merge(
+    regression_stats,
+    on='product_id',
+    how='left'
+)
+
+# Añadir estadísticas de clasificación
+df_analysis = df_analysis.merge(
+    classification_stats,
+    on='product_id',
+    how='left'
+)
+
+# Rellenar NaN con 0
+df_analysis['test_samples_reg'] = df_analysis['test_samples_reg'].fillna(0).astype(int)
+df_analysis['test_samples_clf'] = df_analysis['test_samples_clf'].fillna(0).astype(int)
+df_analysis['test_urgencies'] = df_analysis['test_urgencies'].fillna(0).astype(int)
+
+# Crear columna unificada test_samples (usar el máximo)
+df_analysis['test_samples'] = df_analysis[['test_samples_reg', 'test_samples_clf']].max(axis=1)
+
+print(f"✓ Datos fusionados: {df_analysis.shape}")
+print(f"  Productos totales: {df_analysis['product_id'].nunique()}")
+print()
+
+# ============================================================================
+# 4. ESTADÍSTICAS DESCRIPTIVAS
+# ============================================================================
+print("4. ESTADÍSTICAS DESCRIPTIVAS")
+print("-" * 80)
+
+print("Distribución de muestras en test:")
+print(df_analysis.groupby('task')['test_samples'].describe())
+print()
+
+print("Distribución de urgencias en test (clasificación):")
+clf_products = df_analysis[df_analysis['task'] == 'classification']
+print(clf_products['test_urgencies'].describe())
+print()
+
+# ============================================================================
+# 5. FILTRADO DE PRODUCTOS CON DATOS INSUFICIENTES
+# ============================================================================
+print("5. FILTRADO DE PRODUCTOS CON DATOS INSUFICIENTES")
+print("-" * 80)
+
 MIN_TEST_SAMPLES = 20
-MIN_URGENCIAS_TEST = 5
+MIN_TEST_URGENCIES = 5
 
-# Guardar antes del filtro
-df_metrics_original = df_metrics.copy()
-
-# Aplicar filtros: muestras suficientes Y urgencias suficientes (para clasificación)
-df_metrics = df_metrics[
-    (df_metrics['test_samples'] >= MIN_TEST_SAMPLES) &
-    ((df_metrics['task'] == 'regression') |
-     ((df_metrics['task'] == 'classification') & (df_metrics['urgencias_test'] >= MIN_URGENCIAS_TEST)))
-].copy()
-
-productos_eliminados = len(df_metrics_original) - len(df_metrics)
 print(f"⚠️  Criterios de filtrado:")
 print(f"   • Mínimo de muestras en test: {MIN_TEST_SAMPLES}")
-print(f"   • Mínimo de urgencias en test (clasificación): {MIN_URGENCIAS_TEST}")
+print(f"   • Mínimo de urgencias en test (clasificación): {MIN_TEST_URGENCIES}")
 print()
-print(f"✓ Productos antes del filtro: {len(df_metrics_original)}")
-print(f"✓ Productos después del filtro: {len(df_metrics)}")
-print(f"❌ Productos eliminados: {productos_eliminados} ({productos_eliminados/len(df_metrics_original)*100:.1f}%)")
+
+# Aplicar filtros
+df_filtered = df_analysis.copy()
+
+# Filtro 1: Mínimo de muestras
+df_filtered = df_filtered[df_filtered['test_samples'] >= MIN_TEST_SAMPLES]
+
+# Filtro 2: Para clasificación, mínimo de urgencias
+mask_regression = df_filtered['task'] == 'regression'
+mask_classification_valid = (
+    (df_filtered['task'] == 'classification') &
+    (df_filtered['test_urgencies'] >= MIN_TEST_URGENCIES)
+)
+
+df_filtered = df_filtered[mask_regression | mask_classification_valid]
+
+print(f"✓ Productos antes del filtro: {len(df_analysis)}")
+print(f"✓ Productos después del filtro: {len(df_filtered)}")
+print(f"❌ Productos eliminados: {len(df_analysis) - len(df_filtered)} ({(len(df_analysis) - len(df_filtered))/len(df_analysis)*100:.1f}%)")
 print()
 
 # ============================================================================
-# 3. EXTRAER INFORMACIÓN DE PRODUCTO
+# 6. ANÁLISIS POR TAREA
 # ============================================================================
-print("3. PARSEANDO INFORMACIÓN DE PRODUCTOS")
+print("6. ANÁLISIS POR TAREA")
 print("-" * 80)
 
-# Extraer categoría y estado del product_id
-# Formato: CATEGORY_X_XXX_STATE_X
-df_metrics['category'] = df_metrics['product_id'].str.split('_').str[0]
-df_metrics['state'] = df_metrics['product_id'].str.split('_').str[-2]
+# Regresión
+df_reg = df_filtered[df_filtered['task'] == 'regression'].copy()
+if len(df_reg) > 0:
+    print("REGRESIÓN:")
+    print(f"  Productos válidos: {len(df_reg)}")
+    print(f"  RMSE promedio: {df_reg['rmse'].mean():.2f}")
+    print(f"  MAE promedio: {df_reg['mae'].mean():.2f}")
+    print(f"  MAPE promedio: {df_reg['mape'].mean():.2f}%")
+    print()
 
-print(f"✓ Categorías únicas: {df_metrics['category'].unique()}")
-print(f"✓ Estados únicos: {df_metrics['state'].unique()}")
-print()
+    # Top 10 mejores
+    top_10_reg = df_reg.nsmallest(10, 'rmse')[['product_id', 'model', 'rmse', 'mae', 'test_samples']]
+    print("  Top 10 productos (mejor RMSE):")
+    print(top_10_reg.to_string(index=False))
+    print()
+
+# Clasificación
+df_clf = df_filtered[df_filtered['task'] == 'classification'].copy()
+if len(df_clf) > 0:
+    print("CLASIFICACIÓN:")
+    print(f"  Productos válidos: {len(df_clf)}")
+    print(f"  F1-Score promedio: {df_clf['f1'].mean():.3f}")
+    print(f"  Precision promedio: {df_clf['precision'].mean():.3f}")
+    print(f"  Recall promedio: {df_clf['recall'].mean():.3f}")
+    print(f"  ROC-AUC promedio: {df_clf['auc'].mean():.3f}")
+    print()
+
+    # Top 10 mejores
+    top_10_clf = df_clf.nlargest(10, 'f1')[['product_id', 'model', 'f1', 'precision', 'recall', 'test_urgencies']]
+    print("  Top 10 productos (mejor F1):")
+    print(top_10_clf.to_string(index=False))
+    print()
 
 # ============================================================================
-# 4. RANKING DE PRODUCTOS POR AUC
+# 7. ANÁLISIS POR MODELO
 # ============================================================================
-print("4. RANKING DE PRODUCTOS (Solo productos con ≥{MIN_TEST_SAMPLES} muestras)")
+print("7. COMPARACIÓN DE MODELOS")
 print("-" * 80)
 
-# Filtrar solo clasificación
-df_clf = df_metrics[df_metrics['task'] == 'classification'].copy()
+model_comparison = df_filtered.groupby(['task', 'model']).agg({
+    'product_id': 'count',
+    'rmse': 'mean',
+    'mae': 'mean',
+    'mape': 'mean',
+    'f1': 'mean',
+    'precision': 'mean',
+    'recall': 'mean',
+    'auc': 'mean'
+}).round(3)
 
-# Ordenar por AUC descendente
-df_clf_sorted = df_clf.sort_values('auc', ascending=False).reset_index(drop=True)
+model_comparison.columns = ['n_products', 'rmse_avg', 'mae_avg', 'mape_avg', 'f1_avg', 'precision_avg', 'recall_avg', 'auc_avg']
 
-# Estadísticas generales
-print(f"AUC - Estadísticas:")
-print(f"  Media:    {df_clf['auc'].mean():.3f}")
-print(f"  Mediana:  {df_clf['auc'].median():.3f}")
-print(f"  Std:      {df_clf['auc'].std():.3f}")
-print(f"  Min:      {df_clf['auc'].min():.3f}")
-print(f"  Max:      {df_clf['auc'].max():.3f}")
-print()
-
-# Categorías de rendimiento
-auc_excellent = (df_clf['auc'] >= 0.80).sum()
-auc_good = ((df_clf['auc'] >= 0.70) & (df_clf['auc'] < 0.80)).sum()
-auc_acceptable = ((df_clf['auc'] >= 0.60) & (df_clf['auc'] < 0.70)).sum()
-auc_poor = (df_clf['auc'] < 0.60).sum()
-
-print("📊 CLASIFICACIÓN DE PRODUCTOS:")
-print(f"  🌟 Excelente (AUC ≥ 0.80):   {auc_excellent:4d} ({auc_excellent/len(df_clf)*100:5.1f}%)")
-print(f"  ✅ Bueno     (0.70 ≤ AUC < 0.80): {auc_good:4d} ({auc_good/len(df_clf)*100:5.1f}%)")
-print(f"  ⚠️  Aceptable (0.60 ≤ AUC < 0.70): {auc_acceptable:4d} ({auc_acceptable/len(df_clf)*100:5.1f}%)")
-print(f"  ❌ Pobre     (AUC < 0.60):   {auc_poor:4d} ({auc_poor/len(df_clf)*100:5.1f}%)")
-print()
-
-# Top 20 mejores productos
-print("🏆 TOP 20 PRODUCTOS MÁS PREDECIBLES:")
-print()
-for idx, row in df_clf_sorted.head(20).iterrows():
-    print(f"  {idx+1:2d}. {row['product_id']:30s} | "
-          f"AUC: {row['auc']:.3f} | F1: {row['f1']:.3f} | "
-          f"Precision: {row['precision']:.3f} | Recall: {row['recall']:.3f}")
-print()
-
-# Bottom 20 peores productos
-print("⚠️  BOTTOM 20 PRODUCTOS MENOS PREDECIBLES:")
-print()
-for idx, row in df_clf_sorted.tail(20).iterrows():
-    print(f"  {len(df_clf)-idx:2d}. {row['product_id']:30s} | "
-          f"AUC: {row['auc']:.3f} | F1: {row['f1']:.3f} | "
-          f"Precision: {row['precision']:.3f} | Recall: {row['recall']:.3f}")
-print()
-
-# ============================================================================
-# 5. ANÁLISIS POR CATEGORÍA
-# ============================================================================
-print("5. ANÁLISIS POR CATEGORÍA")
-print("-" * 80)
-
-category_stats = df_clf.groupby('category')['auc'].agg([
-    'count', 'mean', 'median', 'std', 'min', 'max'
-]).round(3)
-
-category_stats['productos_buenos'] = df_clf[df_clf['auc'] >= 0.70].groupby('category').size()
-category_stats['productos_buenos'] = category_stats['productos_buenos'].fillna(0).astype(int)
-category_stats['pct_buenos'] = (category_stats['productos_buenos'] / category_stats['count'] * 100).round(1)
-
-print(category_stats.to_string())
-print()
-
-# ============================================================================
-# 6. ANÁLISIS POR ESTADO
-# ============================================================================
-print("6. ANÁLISIS POR ESTADO")
-print("-" * 80)
-
-state_stats = df_clf.groupby('state')['auc'].agg([
-    'count', 'mean', 'median', 'std', 'min', 'max'
-]).round(3)
-
-state_stats['productos_buenos'] = df_clf[df_clf['auc'] >= 0.70].groupby('state').size()
-state_stats['productos_buenos'] = state_stats['productos_buenos'].fillna(0).astype(int)
-state_stats['pct_buenos'] = (state_stats['productos_buenos'] / state_stats['count'] * 100).round(1)
-
-print(state_stats.to_string())
-print()
-
-# ============================================================================
-# 7. ANÁLISIS COMBINADO CATEGORÍA × ESTADO
-# ============================================================================
-print("7. ANÁLISIS COMBINADO CATEGORÍA × ESTADO")
-print("-" * 80)
-
-pivot_mean = df_clf.pivot_table(values='auc', index='category', columns='state', aggfunc='mean')
-pivot_count = df_clf.pivot_table(values='auc', index='category', columns='state', aggfunc='count')
-
-print("AUC Promedio por Categoría × Estado:")
-print(pivot_mean.round(3).to_string())
-print()
-print("Número de Productos por Categoría × Estado:")
-print(pivot_count.fillna(0).astype(int).to_string())
+print(model_comparison)
 print()
 
 # ============================================================================
@@ -228,157 +252,165 @@ print()
 print("8. GUARDANDO RESULTADOS")
 print("-" * 80)
 
-# Guardar ranking completo (con número de muestras)
-df_clf_sorted.to_csv(DATA_SIMULATED / 'product_ranking_auc.csv', index=False)
-print(f"✓ Ranking guardado: product_ranking_auc.csv")
-print(f"  Incluye columna 'test_samples' para transparencia")
+# Guardar análisis completo
+output_analysis = DATA_SIMULATED / 'product_analysis.csv'
+df_analysis.to_csv(output_analysis, index=False)
+print(f"✓ Análisis completo guardado: {output_analysis}")
 
-# Guardar productos recomendados (AUC >= 0.70)
-df_recommended = df_clf_sorted[df_clf_sorted['auc'] >= 0.70].copy()
-df_recommended.to_csv(DATA_SIMULATED / 'products_recommended.csv', index=False)
-print(f"✓ Productos recomendados: {len(df_recommended)} productos con AUC ≥ 0.70")
-print(f"  Rango de muestras: {df_recommended['test_samples'].min()}-{df_recommended['test_samples'].max()}")
-print(f"  Media de muestras: {df_recommended['test_samples'].mean():.0f}")
-
-# Guardar productos NO recomendados (AUC < 0.60)
-df_not_recommended = df_clf_sorted[df_clf_sorted['auc'] < 0.60].copy()
-df_not_recommended.to_csv(DATA_SIMULATED / 'products_not_recommended.csv', index=False)
-print(f"✓ Productos NO recomendados: {len(df_not_recommended)} productos con AUC < 0.60")
+# Guardar solo productos filtrados (válidos)
+output_filtered = DATA_SIMULATED / 'products_filtered.csv'
+df_filtered.to_csv(output_filtered, index=False)
+print(f"✓ Productos válidos guardados: {output_filtered}")
+print(f"  Total productos válidos: {len(df_filtered)}")
 print()
 
 # ============================================================================
 # 9. VISUALIZACIONES
 # ============================================================================
-print("9. GENERANDO VISUALIZACIONES")
+print("9. VISUALIZACIONES")
 print("-" * 80)
 
-# 8.1 Distribución de AUC
-fig, axes = plt.subplots(2, 2, figsize=FIGSIZE_WIDE)
+# 9.1 Distribución de muestras en test
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
-# Histograma
-axes[0, 0].hist(df_clf['auc'], bins=50, edgecolor='black', alpha=0.7)
-axes[0, 0].axvline(0.70, color='red', linestyle='--', label='Umbral (0.70)')
-axes[0, 0].axvline(df_clf['auc'].mean(), color='green', linestyle='--', label=f'Media ({df_clf["auc"].mean():.3f})')
-axes[0, 0].set_xlabel('AUC')
-axes[0, 0].set_ylabel('Frecuencia')
-axes[0, 0].set_title('Distribución de AUC por Producto')
-axes[0, 0].legend()
-axes[0, 0].grid(True, alpha=0.3)
-
-# Boxplot por categoría
-df_clf.boxplot(column='auc', by='category', ax=axes[0, 1])
-axes[0, 1].set_xlabel('Categoría')
-axes[0, 1].set_ylabel('AUC')
-axes[0, 1].set_title('AUC por Categoría')
-axes[0, 1].axhline(0.70, color='red', linestyle='--', alpha=0.5)
-plt.sca(axes[0, 1])
-plt.xticks(rotation=45)
-
-# Boxplot por estado
-df_clf.boxplot(column='auc', by='state', ax=axes[1, 0])
-axes[1, 0].set_xlabel('Estado')
-axes[1, 0].set_ylabel('AUC')
-axes[1, 0].set_title('AUC por Estado')
-axes[1, 0].axhline(0.70, color='red', linestyle='--', alpha=0.5)
-
-# Scatter F1 vs AUC
-axes[1, 1].scatter(df_clf['auc'], df_clf['f1'], alpha=0.5)
-axes[1, 1].axvline(0.70, color='red', linestyle='--', alpha=0.5, label='AUC=0.70')
-axes[1, 1].axhline(0.60, color='orange', linestyle='--', alpha=0.5, label='F1=0.60')
-axes[1, 1].set_xlabel('AUC')
-axes[1, 1].set_ylabel('F1-Score')
-axes[1, 1].set_title('Trade-off AUC vs F1')
-axes[1, 1].legend()
-axes[1, 1].grid(True, alpha=0.3)
-
-plt.tight_layout()
-plt.savefig(FIGURES / '06_product_analysis.png', dpi=300, bbox_inches='tight')
-print(f"✓ Guardado: 06_product_analysis.png")
-plt.close()
-
-# 8.2 Heatmap Categoría × Estado
-fig, ax = plt.subplots(figsize=FIGSIZE_STANDARD)
-sns.heatmap(pivot_mean, annot=True, fmt='.3f', cmap='RdYlGn', center=0.65,
-            vmin=0.5, vmax=0.8, ax=ax)
-ax.set_title('AUC Promedio por Categoría × Estado')
-ax.set_xlabel('Estado')
-ax.set_ylabel('Categoría')
-plt.tight_layout()
-plt.savefig(FIGURES / '06_heatmap_category_state.png', dpi=300, bbox_inches='tight')
-print(f"✓ Guardado: 06_heatmap_category_state.png")
-plt.close()
-
-# 8.3 Top/Bottom productos
-fig, axes = plt.subplots(1, 2, figsize=FIGSIZE_WIDE)
-
-# Top 15
-top15 = df_clf_sorted.head(15)
-axes[0].barh(range(len(top15)), top15['auc'], color='green', alpha=0.7)
-axes[0].set_yticks(range(len(top15)))
-axes[0].set_yticklabels(top15['product_id'], fontsize=8)
-axes[0].axvline(0.70, color='red', linestyle='--', label='Umbral (0.70)')
-axes[0].set_xlabel('AUC')
-axes[0].set_title('Top 15 Productos Más Predecibles')
+# Histograma de test_samples
+axes[0].hist(df_filtered['test_samples'], bins=30, color=COLORS['primary'], alpha=0.7, edgecolor='black')
+axes[0].axvline(MIN_TEST_SAMPLES, color='red', linestyle='--', linewidth=2, label=f'Mínimo: {MIN_TEST_SAMPLES}')
+axes[0].set_xlabel('Número de semanas en test', fontsize=11)
+axes[0].set_ylabel('Frecuencia', fontsize=11)
+axes[0].set_title('Distribución de muestras en test set', fontsize=12, fontweight='bold')
 axes[0].legend()
-axes[0].grid(True, alpha=0.3, axis='x')
+axes[0].grid(True, alpha=0.3)
 
-# Bottom 15
-bottom15 = df_clf_sorted.tail(15).iloc[::-1]  # Invertir para que el peor esté arriba
-axes[1].barh(range(len(bottom15)), bottom15['auc'], color='red', alpha=0.7)
-axes[1].set_yticks(range(len(bottom15)))
-axes[1].set_yticklabels(bottom15['product_id'], fontsize=8)
-axes[1].axvline(0.60, color='orange', linestyle='--', label='Mínimo aceptable')
-axes[1].set_xlabel('AUC')
-axes[1].set_title('Bottom 15 Productos Menos Predecibles')
-axes[1].legend()
-axes[1].grid(True, alpha=0.3, axis='x')
+# Histograma de urgencias (solo clasificación)
+if len(df_clf) > 0:
+    axes[1].hist(df_clf['test_urgencies'], bins=30, color=COLORS['secondary'], alpha=0.7, edgecolor='black')
+    axes[1].axvline(MIN_TEST_URGENCIES, color='red', linestyle='--', linewidth=2, label=f'Mínimo: {MIN_TEST_URGENCIES}')
+    axes[1].set_xlabel('Número de urgencias en test', fontsize=11)
+    axes[1].set_ylabel('Frecuencia', fontsize=11)
+    axes[1].set_title('Distribución de urgencias en test set', fontsize=12, fontweight='bold')
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3)
 
 plt.tight_layout()
-plt.savefig(FIGURES / '06_top_bottom_products.png', dpi=300, bbox_inches='tight')
-print(f"✓ Guardado: 06_top_bottom_products.png")
+plt.savefig(FIGURES / '06_data_distribution.png', dpi=100, bbox_inches='tight')
+print(f"✓ Guardado: {FIGURES / '06_data_distribution.png'}")
 plt.close()
 
+# 9.2 Rendimiento por modelo
+if len(df_filtered) > 0:
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+    # Regresión: RMSE por modelo
+    if len(df_reg) > 0:
+        df_reg.boxplot(column='rmse', by='model', ax=axes[0])
+        axes[0].set_title('RMSE por Modelo (Regresión)', fontsize=12, fontweight='bold')
+        axes[0].set_xlabel('Modelo', fontsize=11)
+        axes[0].set_ylabel('RMSE', fontsize=11)
+        axes[0].get_figure().suptitle('')
+        axes[0].grid(True, alpha=0.3, axis='y')
+
+    # Clasificación: F1 por modelo
+    if len(df_clf) > 0:
+        df_clf.boxplot(column='f1', by='model', ax=axes[1])
+        axes[1].set_title('F1-Score por Modelo (Clasificación)', fontsize=12, fontweight='bold')
+        axes[1].set_xlabel('Modelo', fontsize=11)
+        axes[1].set_ylabel('F1-Score', fontsize=11)
+        axes[1].get_figure().suptitle('')
+        axes[1].grid(True, alpha=0.3, axis='y')
+
+    plt.tight_layout()
+    plt.savefig(FIGURES / '06_model_performance.png', dpi=100, bbox_inches='tight')
+    print(f"✓ Guardado: {FIGURES / '06_model_performance.png'}")
+    plt.close()
+
+# 9.3 Scatter: Muestras vs Performance
+if len(df_reg) > 0 or len(df_clf) > 0:
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+    # Regresión: test_samples vs RMSE
+    if len(df_reg) > 0:
+        axes[0].scatter(df_reg['test_samples'], df_reg['rmse'], alpha=0.5, c=COLORS['primary'], s=50)
+        axes[0].set_xlabel('Número de semanas en test', fontsize=11)
+        axes[0].set_ylabel('RMSE', fontsize=11)
+        axes[0].set_title('Muestras en Test vs RMSE', fontsize=12, fontweight='bold')
+        axes[0].grid(True, alpha=0.3)
+
+    # Clasificación: test_urgencies vs F1
+    if len(df_clf) > 0:
+        axes[1].scatter(df_clf['test_urgencies'], df_clf['f1'], alpha=0.5, c=COLORS['secondary'], s=50)
+        axes[1].set_xlabel('Número de urgencias en test', fontsize=11)
+        axes[1].set_ylabel('F1-Score', fontsize=11)
+        axes[1].set_title('Urgencias en Test vs F1-Score', fontsize=12, fontweight='bold')
+        axes[1].grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(FIGURES / '06_samples_vs_performance.png', dpi=100, bbox_inches='tight')
+    print(f"✓ Guardado: {FIGURES / '06_samples_vs_performance.png'}")
+    plt.close()
+
 print()
 
 # ============================================================================
-# 9. RECOMENDACIONES
+# 10. RESUMEN EJECUTIVO
 # ============================================================================
+print()
 print("="*80)
-print("RESUMEN EJECUTIVO Y RECOMENDACIONES")
+print("RESUMEN EJECUTIVO - ANÁLISIS POR PRODUCTO")
 print("="*80)
 print()
 
-print(f"📊 PRODUCTOS EVALUADOS: {len(df_clf)}")
+print(f"📊 DATASET COMPLETO:")
+print(f"  • Total registros (métricas): {len(df_analysis)}")
+print(f"  • Productos únicos: {df_analysis['product_id'].nunique()}")
 print()
 
-print("🎯 SEGMENTACIÓN POR RENDIMIENTO:")
-print(f"  🌟 Implementar AHORA  (AUC ≥ 0.80): {auc_excellent:4d} productos ({auc_excellent/len(df_clf)*100:5.1f}%)")
-print(f"  ✅ Implementar PRONTO (0.70-0.79):  {auc_good:4d} productos ({auc_good/len(df_clf)*100:5.1f}%)")
-print(f"  ⚠️  Monitorear         (0.60-0.69):  {auc_acceptable:4d} productos ({auc_acceptable/len(df_clf)*100:5.1f}%)")
-print(f"  ❌ NO implementar    (AUC < 0.60):  {auc_poor:4d} productos ({auc_poor/len(df_clf)*100:5.1f}%)")
+print(f"✅ PRODUCTOS VÁLIDOS (después de filtrado):")
+print(f"  • Total registros válidos: {len(df_filtered)}")
+print(f"  • Productos únicos válidos: {df_filtered['product_id'].nunique()}")
+print(f"  • Tasa de retención: {len(df_filtered)/len(df_analysis)*100:.1f}%")
 print()
 
-total_implementar = auc_excellent + auc_good
-print(f"💡 RECOMENDACIÓN:")
-print(f"  → Implementar modelo en {total_implementar} productos ({total_implementar/len(df_clf)*100:.1f}%)")
-print(f"  → Usar método tradicional en {auc_poor} productos restantes")
-print()
+if len(df_reg) > 0:
+    print(f"📈 REGRESIÓN (Predicción de ventas):")
+    print(f"  • Productos evaluados: {len(df_reg)}")
+    print(f"  • Mejor producto: {df_reg.nsmallest(1, 'rmse').iloc[0]['product_id']}")
+    print(f"    RMSE: {df_reg['rmse'].min():.2f}")
+    print(f"  • RMSE promedio: {df_reg['rmse'].mean():.2f} (std: {df_reg['rmse'].std():.2f})")
+    print(f"  • MAE promedio: {df_reg['mae'].mean():.2f}")
+    print()
 
-print("📈 MEJORES CATEGORÍAS:")
-best_category = category_stats.sort_values('mean', ascending=False).head(3)
-for idx, row in best_category.iterrows():
-    print(f"  • {idx}: AUC medio {row['mean']:.3f} ({row['pct_buenos']:.1f}% buenos)")
-print()
+if len(df_clf) > 0:
+    print(f"🎯 CLASIFICACIÓN (Predicción de urgencias):")
+    print(f"  • Productos evaluados: {len(df_clf)}")
+    print(f"  • Mejor producto: {df_clf.nlargest(1, 'f1').iloc[0]['product_id']}")
+    print(f"    F1-Score: {df_clf['f1'].max():.3f}")
+    print(f"  • F1-Score promedio: {df_clf['f1'].mean():.3f} (std: {df_clf['f1'].std():.3f})")
+    print(f"  • Precision promedio: {df_clf['precision'].mean():.3f}")
+    print(f"  • Recall promedio: {df_clf['recall'].mean():.3f}")
+    print(f"  • ROC-AUC promedio: {df_clf['auc'].mean():.3f}")
+    print()
 
-print("📁 OUTPUTS GENERADOS:")
-print(f"  • product_ranking_auc.csv - Ranking completo")
-print(f"  • products_recommended.csv - {len(df_recommended)} productos para implementar")
-print(f"  • products_not_recommended.csv - {len(df_not_recommended)} productos a evitar")
-print(f"  • 06_product_analysis.png")
-print(f"  • 06_heatmap_category_state.png")
-print(f"  • 06_top_bottom_products.png")
+print(f"📁 OUTPUTS GENERADOS:")
+print(f"  • product_analysis.csv ({len(df_analysis)} registros)")
+print(f"  • products_filtered.csv ({len(df_filtered)} registros)")
+print(f"  • 06_data_distribution.png")
+print(f"  • 06_model_performance.png")
+print(f"  • 06_samples_vs_performance.png")
 print()
 
 print("="*80)
 print("✓ ANÁLISIS POR PRODUCTO COMPLETADO")
 print("="*80)
+print()
+
+print("CONCLUSIÓN:")
+print(f"  ✓ {len(df_filtered)} productos válidos identificados")
+print(f"  ✓ {len(df_analysis) - len(df_filtered)} productos filtrados por datos insuficientes")
+print(f"  ✓ Dataset limpio generado para análisis de ROI")
+print()
+
+print("PRÓXIMO PASO:")
+print(f"  → Ejecutar 05_valor_operativo.py con productos filtrados")
+print(f"  → Calcular ROI solo con productos confiables")
+print()
