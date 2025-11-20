@@ -679,8 +679,7 @@ print()
 
 # Métricas promedio de CV
 df_reg = df_results[df_results['task'] == 'regression'].copy()
-df_clf = df_results[df_results['task'] == 'classification'].copy()
-
+best_reg = pd.DataFrame()  # Inicializar como DataFrame vacío
 if len(df_reg) > 0:
     print("REGRESIÓN - Métricas CV promedio:")
     print(f"  RMSE CV promedio: {df_reg['rmse_cv'].mean():.2f}")
@@ -689,6 +688,9 @@ if len(df_reg) > 0:
     print(f"    XGB elegido: {(df_reg['model'] == 'XGBoost').sum()} productos")
     print()
 
+# Mejor modelo por producto (clasificación)
+df_clf = df_results[df_results['task'] == 'classification'].copy()
+best_clf = pd.DataFrame()  # Inicializar como DataFrame vacío
 if len(df_clf) > 0:
     print("CLASIFICACIÓN - Métricas CV promedio:")
     print(f"  AUC CV promedio: {df_clf['auc_cv'].mean():.3f}")
