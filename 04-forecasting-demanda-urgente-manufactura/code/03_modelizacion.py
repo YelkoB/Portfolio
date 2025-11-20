@@ -86,23 +86,45 @@ MODELS_DIR_GRANULAR.mkdir(parents=True, exist_ok=True)
 MODELS_DIR_AGGREGATED.mkdir(parents=True, exist_ok=True)
 
 print(f"✓ Directorios de modelos creados:")
-print(f"  • {MODELS_DIR_GRANULAR}")
+print(f"  • {models_dir}")
 print(f"  • {MODELS_DIR_AGGREGATED}")
 print()
 
 # ============================================================================
-# 1. CARGA DE DATOS (GRANULAR)
+# 1. CARGA DE DATOS (GRANULAR Y AGREGADO)
 # ============================================================================
-print("1. CARGANDO DATOS CON FEATURES (GRANULAR)")
+print("1. CARGANDO DATOS CON FEATURES")
 print("-" * 80)
 
-df = pd.read_csv(DATA_SIMULATED / 'features_weekly_granular.csv')
-df['week_start'] = pd.to_datetime(df['week_start'])
+# Intentar cargar nivel GRANULAR
+df_granular = None
+granular_file = DATA_SIMULATED / 'features_weekly_granular.csv'
+if granular_file.exists():
+    df_granular = pd.read_csv(granular_file)
+    df_granular['week_start'] = pd.to_datetime(df_granular['week_start'])
+    print(f"✅ GRANULAR (producto-tienda): {df_granular.shape}")
+    print(f"   Productos: {df_granular['product_id'].nunique()}")
+    print(f"   Período: {df_granular['week_start'].min().date()} a {df_granular['week_start'].max().date()}")
+else:
+    print(f"❌ GRANULAR: Archivo no encontrado")
 
-print(f"✓ Dataset GRANULAR cargado: {df.shape}")
-print(f"  Productos: {df['product_id'].nunique()}")
-print(f"  Período: {df['week_start'].min()} a {df['week_start'].max()}")
+# Intentar cargar nivel AGREGADO
+df_aggregated = None
+aggregated_file = DATA_SIMULATED / 'features_weekly_aggregated.csv'
+if aggregated_file.exists():
+    df_aggregated = pd.read_csv(aggregated_file)
+    df_aggregated['week_start'] = pd.to_datetime(df_aggregated['week_start'])
+    print(f"✅ AGREGADO (producto-base): {df_aggregated.shape}")
+    print(f"   Productos: {df_aggregated['product_base'].nunique()}")
+    print(f"   Período: {df_aggregated['week_start'].min().date()} a {df_aggregated['week_start'].max().date()}")
+else:
+    print(f"⚠️  AGREGADO: Archivo no encontrado - ejecuta script 02 primero")
+
 print()
+
+# Verificar que al menos un dataset esté disponible
+if df_granular is None and df_aggregated is None:
+    raise FileNotFoundError("No hay datasets disponibles. Ejecuta script 02 primero.")
 
 # Cargar lista de features
 with open(DATA_SIMULATED / 'feature_list.json', 'r') as f:
@@ -111,12 +133,28 @@ with open(DATA_SIMULATED / 'feature_list.json', 'r') as f:
 print(f"✓ Features cargadas: {len(feature_list['all_features'])} totales")
 print()
 
-print("💡 NOTA: Este script procesa nivel GRANULAR (producto-tienda)")
-print("   Nivel AGREGADO pendiente (requiere features_weekly_aggregated.csv)")
+# ============================================================================
+# 2. SELECCIONAR DATASET A PROCESAR
+# ============================================================================
+# Por ahora procesar solo GRANULAR (agregado requiere refactoring adicional)
+df = df_granular if df_granular is not None else df_aggregated
+
+if df is df_granular:
+    id_col = 'product_id'
+    level_name = 'GRANULAR (producto-tienda)'
+    models_dir = MODELS_DIR_GRANULAR
+    suffix = 'granular'
+else:
+    id_col = 'product_base'
+    level_name = 'AGREGADO (producto-base)'
+    models_dir = MODELS_DIR_AGGREGATED
+    suffix = 'aggregated'
+
+print(f"📊 PROCESANDO NIVEL: {level_name}")
 print()
 
 # ============================================================================
-# 2. DEFINIR FEATURES Y TARGET
+# 3. DEFINIR FEATURES Y TARGET
 # ============================================================================
 print("2. DEFINIENDO FEATURES Y TARGETS")
 print("-" * 80)
@@ -162,41 +200,37 @@ print(f"⚠️  Horizonte de predicción: 1 semana adelante")
 print()
 
 # ============================================================================
-# 3. TRAIN/VAL/TEST SPLIT TEMPORAL
+# 3. TRAIN/TEST SPLIT TEMPORAL
 # ============================================================================
-print("3. TRAIN/VAL/TEST SPLIT TEMPORAL")
+print("3. TRAIN/TEST SPLIT TEMPORAL")
 print("-" * 80)
 
-def temporal_split(product_df, train_pct=0.70, val_pct=0.15):
+def temporal_split(product_df, train_pct=0.80):
     """
-    Split temporal: Train 70%, Val 15%, Test 15%
+    Split temporal: Train 80%, Test 20%
     Sin data leakage - respeta orden temporal
     """
     df_sorted = product_df.sort_values('week_start').reset_index(drop=True)
     n = len(df_sorted)
 
     train_end = int(n * train_pct)
-    val_end = int(n * (train_pct + val_pct))
 
     train = df_sorted.iloc[:train_end]
-    val = df_sorted.iloc[train_end:val_end]
-    test = df_sorted.iloc[val_end:]
+    test = df_sorted.iloc[train_end:]
 
-    return train, val, test
+    return train, test
 
 
 # Ejemplo con primer producto
-products = df['product_id'].unique()
+products = df[id_col].unique()
 example_product = products[0]
-df_example = df[df['product_id'] == example_product]
+df_example = df[df[id_col] == example_product]
 
-train_ex, val_ex, test_ex = temporal_split(df_example)
+train_ex, test_ex = temporal_split(df_example)
 
 print(f"Split para producto ejemplo ({example_product}):")
 print(f"  Train: {len(train_ex)} registros ({len(train_ex)/len(df_example)*100:.1f}%)")
 print(f"    Período: {train_ex['week_start'].min().date()} a {train_ex['week_start'].max().date()}")
-print(f"  Val:   {len(val_ex)} registros ({len(val_ex)/len(df_example)*100:.1f}%)")
-print(f"    Período: {val_ex['week_start'].min().date()} a {val_ex['week_start'].max().date()}")
 print(f"  Test:  {len(test_ex)} registros ({len(test_ex)/len(df_example)*100:.1f}%)")
 print(f"    Período: {test_ex['week_start'].min().date()} a {test_ex['week_start'].max().date()}")
 print()
@@ -429,37 +463,37 @@ print(f"Entrenando modelos para {len(products)} productos...")
 print()
 
 for product_id in tqdm(products, desc="Procesando productos"):
-    df_product = df[df['product_id'] == product_id]
+    df_product = df[df[id_col] == product_id]
 
-    # Split temporal
-    train, val, test = temporal_split(df_product)
+    # Split temporal (80/20)
+    train, test = temporal_split(df_product)
 
     # Preparar datos
     X_train = train[feature_cols]
     y_train_reg = train[target_regression]
     y_train_clf = train[target_classification]
 
-    X_val = val[feature_cols]
-    y_val_reg = val[target_regression]
-    y_val_clf = val[target_classification]
+    X_test = test[feature_cols]
+    y_test_reg = test[target_regression]
+    y_test_clf = test[target_classification]
 
     # ========================================================================
     # A. RANDOM FOREST REGRESSION
     # ========================================================================
     model_rf_reg, metrics_rf_reg, _ = train_random_forest_regression(
-        X_train, y_train_reg, X_val, y_val_reg
+        X_train, y_train_reg, X_test, y_test_reg
     )
 
     if model_rf_reg is not None:
         results.append({
-            'product_id': product_id,
+            id_col: product_id,
             'model': 'RandomForest',
             'task': 'regression',
             **metrics_rf_reg
         })
 
         # Guardar modelo
-        model_path = MODELS_DIR_GRANULAR / f'{product_id}_rf_reg.pkl'
+        model_path = models_dir / f'{product_id}_rf_reg.pkl'
         with open(model_path, 'wb') as f:
             pickle.dump(model_rf_reg, f)
 
@@ -467,19 +501,19 @@ for product_id in tqdm(products, desc="Procesando productos"):
     # B. XGBOOST REGRESSION
     # ========================================================================
     model_xgb_reg, metrics_xgb_reg, _ = train_xgboost_regression(
-        X_train, y_train_reg, X_val, y_val_reg
+        X_train, y_train_reg, X_test, y_test_reg
     )
 
     if model_xgb_reg is not None:
         results.append({
-            'product_id': product_id,
+            id_col: product_id,
             'model': 'XGBoost',
             'task': 'regression',
             **metrics_xgb_reg
         })
 
         # Guardar modelo
-        model_path = MODELS_DIR_GRANULAR / f'{product_id}_xgb_reg.pkl'
+        model_path = models_dir / f'{product_id}_xgb_reg.pkl'
         with open(model_path, 'wb') as f:
             pickle.dump(model_xgb_reg, f)
 
@@ -487,19 +521,19 @@ for product_id in tqdm(products, desc="Procesando productos"):
     # C. RANDOM FOREST CLASSIFICATION
     # ========================================================================
     model_rf_clf, metrics_rf_clf, _ = train_random_forest_classification(
-        X_train, y_train_clf, X_val, y_val_clf
+        X_train, y_train_clf, X_test, y_test_clf
     )
 
     if model_rf_clf is not None:
         results.append({
-            'product_id': product_id,
+            id_col: product_id,
             'model': 'RandomForest',
             'task': 'classification',
             **metrics_rf_clf
         })
 
         # Guardar modelo
-        model_path = MODELS_DIR_GRANULAR / f'{product_id}_rf_clf.pkl'
+        model_path = models_dir / f'{product_id}_rf_clf.pkl'
         with open(model_path, 'wb') as f:
             pickle.dump(model_rf_clf, f)
 
@@ -507,19 +541,19 @@ for product_id in tqdm(products, desc="Procesando productos"):
     # D. XGBOOST CLASSIFICATION
     # ========================================================================
     model_xgb_clf, metrics_xgb_clf, _ = train_xgboost_classification(
-        X_train, y_train_clf, X_val, y_val_clf
+        X_train, y_train_clf, X_test, y_test_clf
     )
 
     if model_xgb_clf is not None:
         results.append({
-            'product_id': product_id,
+            id_col: product_id,
             'model': 'XGBoost',
             'task': 'classification',
             **metrics_xgb_clf
         })
 
         # Guardar modelo
-        model_path = MODELS_DIR_GRANULAR / f'{product_id}_xgb_clf.pkl'
+        model_path = models_dir / f'{product_id}_xgb_clf.pkl'
         with open(model_path, 'wb') as f:
             pickle.dump(model_xgb_clf, f)
 
@@ -528,8 +562,8 @@ df_results = pd.DataFrame(results)
 
 print()
 print(f"✓ Modelos entrenados: {len(results)}")
-print(f"  Productos procesados: {df_results['product_id'].nunique()}")
-print(f"  Modelos guardados en: {MODELS_DIR_GRANULAR}")
+print(f"  Productos procesados: {df_results[id_col].nunique()}")
+print(f"  Modelos guardados en: {models_dir}")
 print()
 
 # ============================================================================
@@ -557,45 +591,47 @@ print()
 df_reg = df_results[df_results['task'] == 'regression'].copy()
 best_reg = pd.DataFrame()  # Inicializar como DataFrame vacío
 if len(df_reg) > 0:
-    best_reg = df_reg.loc[df_reg.groupby('product_id')['rmse'].idxmin()]
+    best_reg = df_reg.loc[df_reg.groupby(id_col)['rmse'].idxmin()]
     print(f"Mejor modelo de regresión por producto:")
-    print(best_reg[['product_id', 'model', 'rmse', 'mae', 'mape']].head(10))
+    print(best_reg[[id_col, 'model', 'rmse', 'mae', 'mape']].head(10))
     print()
 
 # Mejor modelo por producto (clasificación)
 df_clf = df_results[df_results['task'] == 'classification'].copy()
 best_clf = pd.DataFrame()  # Inicializar como DataFrame vacío
 if len(df_clf) > 0:
-    best_clf = df_clf.loc[df_clf.groupby('product_id')['f1'].idxmax()]
+    best_clf = df_clf.loc[df_clf.groupby(id_col)['f1'].idxmax()]
     print(f"Mejor modelo de clasificación por producto:")
-    print(best_clf[['product_id', 'model', 'precision', 'recall', 'f1', 'auc']].head(10))
+    print(best_clf[[id_col, 'model', 'precision', 'recall', 'f1', 'auc']].head(10))
     print()
 
 # ============================================================================
-# 7. GUARDAR RESULTADOS (GRANULAR)
+# 7. GUARDAR RESULTADOS
 # ============================================================================
-print("6. GUARDANDO RESULTADOS (GRANULAR)")
+print(f"6. GUARDANDO RESULTADOS ({level_name})")
 print("-" * 80)
 
-# Guardar métricas de entrenamiento (granular)
-output_file = DATA_SIMULATED / 'train_metrics_granular.csv'
+# Guardar métricas de entrenamiento
+output_file = DATA_SIMULATED / f'train_metrics_{suffix}.csv'
 df_results.to_csv(output_file, index=False)
 print(f"✓ Métricas de entrenamiento guardadas: {output_file}")
 print(f"  Registros: {len(df_results)}")
-print(f"  Modelos entrenados en {MODELS_DIR_GRANULAR}")
+print(f"  Modelos entrenados en {models_dir}")
 
 # Guardar mejores modelos por producto
 best_models = []
 if len(best_reg) > 0:
     best_reg['metric_type'] = 'rmse'
-    best_models.append(best_reg[['product_id', 'model', 'task', 'metric_type', 'rmse', 'mae', 'mape']])
+    cols_reg = [id_col, 'model', 'task', 'metric_type', 'rmse', 'mae', 'mape']
+    best_models.append(best_reg[cols_reg])
 if len(best_clf) > 0:
     best_clf['metric_type'] = 'f1'
-    best_models.append(best_clf[['product_id', 'model', 'task', 'metric_type', 'precision', 'recall', 'f1', 'auc']])
+    cols_clf = [id_col, 'model', 'task', 'metric_type', 'precision', 'recall', 'f1', 'auc']
+    best_models.append(best_clf[cols_clf])
 
 if len(best_models) > 0:
     df_best = pd.concat(best_models, ignore_index=True)
-    best_file = DATA_SIMULATED / 'best_models_granular.csv'
+    best_file = DATA_SIMULATED / f'best_models_{suffix}.csv'
     df_best.to_csv(best_file, index=False)
     print(f"✓ Mejores modelos guardados: {best_file}")
 
@@ -681,9 +717,9 @@ print("RESUMEN EJECUTIVO")
 print("="*80)
 print()
 print(f"📊 MODELIZACIÓN COMPLETADA:")
-print(f"  • Productos procesados: {df_results['product_id'].nunique()}")
+print(f"  • Productos procesados: {df_results[id_col].nunique()}")
 print(f"  • Total modelos entrenados: {len(results)}")
-print(f"  • Modelos guardados en: {MODELS_DIR_GRANULAR}")
+print(f"  • Modelos guardados en: {models_dir}")
 print()
 print(f"🤖 MODELOS EVALUADOS:")
 print(f"  • Random Forest (Regresión + Clasificación)")
