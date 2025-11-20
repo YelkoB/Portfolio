@@ -152,43 +152,138 @@ print(clf_products['test_urgencies'].describe())
 print()
 
 # ============================================================================
-# 5. FILTRADO DE PRODUCTOS CON DATOS INSUFICIENTES
+# 5. FILTRADO BÁSICO (Datos suficientes)
 # ============================================================================
-print("5. FILTRADO DE PRODUCTOS CON DATOS INSUFICIENTES")
+print("5. FILTRADO BÁSICO - DATOS SUFICIENTES")
 print("-" * 80)
 
 MIN_TEST_SAMPLES = 20
 MIN_TEST_URGENCIES = 5
 
-print(f"⚠️  Criterios de filtrado:")
+print(f"⚠️  Criterios básicos:")
 print(f"   • Mínimo de muestras en test: {MIN_TEST_SAMPLES}")
 print(f"   • Mínimo de urgencias en test (clasificación): {MIN_TEST_URGENCIES}")
 print()
 
-# Aplicar filtros
-df_filtered = df_analysis.copy()
+# Aplicar filtros básicos
+df_basic_filter = df_analysis.copy()
 
 # Filtro 1: Mínimo de muestras
-df_filtered = df_filtered[df_filtered['test_samples'] >= MIN_TEST_SAMPLES]
+df_basic_filter = df_basic_filter[df_basic_filter['test_samples'] >= MIN_TEST_SAMPLES]
 
 # Filtro 2: Para clasificación, mínimo de urgencias
-mask_regression = df_filtered['task'] == 'regression'
+mask_regression = df_basic_filter['task'] == 'regression'
 mask_classification_valid = (
-    (df_filtered['task'] == 'classification') &
-    (df_filtered['test_urgencies'] >= MIN_TEST_URGENCIES)
+    (df_basic_filter['task'] == 'classification') &
+    (df_basic_filter['test_urgencies'] >= MIN_TEST_URGENCIES)
 )
 
-df_filtered = df_filtered[mask_regression | mask_classification_valid]
+df_basic_filter = df_basic_filter[mask_regression | mask_classification_valid]
 
-print(f"✓ Productos antes del filtro: {len(df_analysis)}")
-print(f"✓ Productos después del filtro: {len(df_filtered)}")
-print(f"❌ Productos eliminados: {len(df_analysis) - len(df_filtered)} ({(len(df_analysis) - len(df_filtered))/len(df_analysis)*100:.1f}%)")
+print(f"✓ Productos antes del filtro básico: {len(df_analysis)}")
+print(f"✓ Productos después del filtro básico: {len(df_basic_filter)}")
+print(f"❌ Productos eliminados: {len(df_analysis) - len(df_basic_filter)} ({(len(df_analysis) - len(df_basic_filter))/len(df_analysis)*100:.1f}%)")
 print()
 
 # ============================================================================
-# 6. ANÁLISIS POR TAREA
+# 6. FILTRADO POR CALIDAD DEL MODELO (Performance)
 # ============================================================================
-print("6. ANÁLISIS POR TAREA")
+print("6. FILTRADO POR CALIDAD DEL MODELO")
+print("-" * 80)
+
+# Criterios de calidad
+MIN_F1_TIER1 = 0.5  # Excelente
+MIN_F1_TIER2 = 0.3  # Aceptable
+MIN_RECALL_TIER1 = 0.4
+MIN_RECALL_TIER2 = 0.2
+
+MAX_RMSE_RATIO_TIER1 = 1.0  # RMSE/MAE < 1.0 (predicciones consistentes)
+MAX_RMSE_RATIO_TIER2 = 1.5  # RMSE/MAE < 1.5 (aceptable)
+
+print(f"📊 CRITERIOS DE CALIDAD:")
+print(f"")
+print(f"CLASIFICACIÓN (Predicción de urgencias):")
+print(f"  Tier 1 (Deployment Inmediato):")
+print(f"    • F1-Score ≥ {MIN_F1_TIER1}")
+print(f"    • Recall ≥ {MIN_RECALL_TIER1}")
+print(f"  Tier 2 (Monitoring):")
+print(f"    • F1-Score ≥ {MIN_F1_TIER2}")
+print(f"    • Recall ≥ {MIN_RECALL_TIER2}")
+print(f"  Tier 3 (Rechazado): Resto")
+print(f"")
+print(f"REGRESIÓN (Predicción de ventas):")
+print(f"  Tier 1: RMSE/MAE ≤ {MAX_RMSE_RATIO_TIER1} (predicciones consistentes)")
+print(f"  Tier 2: RMSE/MAE ≤ {MAX_RMSE_RATIO_TIER2} (aceptable)")
+print(f"  Tier 3 (Rechazado): Resto")
+print()
+
+# Separar por tarea
+df_reg = df_basic_filter[df_basic_filter['task'] == 'regression'].copy()
+df_clf = df_basic_filter[df_basic_filter['task'] == 'classification'].copy()
+
+# Calcular RMSE/MAE ratio para regresión
+if len(df_reg) > 0:
+    df_reg['rmse_mae_ratio'] = df_reg['rmse'] / df_reg['mae']
+
+    # Clasificar en tiers
+    df_reg['tier'] = 'Tier 3 - Rechazado'
+    df_reg.loc[df_reg['rmse_mae_ratio'] <= MAX_RMSE_RATIO_TIER2, 'tier'] = 'Tier 2 - Monitoring'
+    df_reg.loc[df_reg['rmse_mae_ratio'] <= MAX_RMSE_RATIO_TIER1, 'tier'] = 'Tier 1 - Deployment'
+
+# Clasificar en tiers para clasificación
+if len(df_clf) > 0:
+    df_clf['tier'] = 'Tier 3 - Rechazado'
+
+    # Tier 2: F1 >= 0.3 Y Recall >= 0.2
+    mask_tier2 = (df_clf['f1'] >= MIN_F1_TIER2) & (df_clf['recall'] >= MIN_RECALL_TIER2)
+    df_clf.loc[mask_tier2, 'tier'] = 'Tier 2 - Monitoring'
+
+    # Tier 1: F1 >= 0.5 Y Recall >= 0.4
+    mask_tier1 = (df_clf['f1'] >= MIN_F1_TIER1) & (df_clf['recall'] >= MIN_RECALL_TIER1)
+    df_clf.loc[mask_tier1, 'tier'] = 'Tier 1 - Deployment'
+
+# Combinar
+df_filtered = pd.concat([df_reg, df_clf], ignore_index=True)
+
+# Estadísticas de filtrado
+print("RESULTADOS DEL FILTRADO POR CALIDAD:")
+print()
+
+if len(df_reg) > 0:
+    print("REGRESIÓN:")
+    tier_counts_reg = df_reg['tier'].value_counts().sort_index()
+    for tier, count in tier_counts_reg.items():
+        pct = count / len(df_reg) * 100
+        print(f"  {tier}: {count} productos ({pct:.1f}%)")
+    print()
+
+if len(df_clf) > 0:
+    print("CLASIFICACIÓN:")
+    tier_counts_clf = df_clf['tier'].value_counts().sort_index()
+    for tier, count in tier_counts_clf.items():
+        pct = count / len(df_clf) * 100
+        print(f"  {tier}: {count} productos ({pct:.1f}%)")
+    print()
+
+# Productos aptos para deployment (Tier 1 + Tier 2)
+df_deployment = df_filtered[df_filtered['tier'].isin(['Tier 1 - Deployment', 'Tier 2 - Monitoring'])].copy()
+df_tier1 = df_filtered[df_filtered['tier'] == 'Tier 1 - Deployment'].copy()
+df_rejected = df_filtered[df_filtered['tier'] == 'Tier 3 - Rechazado'].copy()
+
+print(f"📊 RESUMEN GLOBAL:")
+print(f"  Total productos analizados: {len(df_analysis)}")
+print(f"  Tier 1 (Deployment Inmediato): {len(df_tier1)} ({len(df_tier1)/len(df_filtered)*100:.1f}%)")
+print(f"  Tier 2 (Monitoring): {len(df_deployment) - len(df_tier1)} ({(len(df_deployment) - len(df_tier1))/len(df_filtered)*100:.1f}%)")
+print(f"  Tier 3 (Rechazado): {len(df_rejected)} ({len(df_rejected)/len(df_filtered)*100:.1f}%)")
+print(f"")
+print(f"  ✅ APTOS PARA USAR: {len(df_deployment)} ({len(df_deployment)/len(df_filtered)*100:.1f}%)")
+print(f"  ❌ NO USAR: {len(df_rejected)} ({len(df_rejected)/len(df_filtered)*100:.1f}%)")
+print()
+
+# ============================================================================
+# 7. ANÁLISIS POR TIER
+# ============================================================================
+print("7. ANÁLISIS POR TIER")
 print("-" * 80)
 
 # Regresión
@@ -252,16 +347,28 @@ print()
 print("8. GUARDANDO RESULTADOS")
 print("-" * 80)
 
-# Guardar análisis completo
+# Guardar análisis completo (con columna 'tier')
 output_analysis = DATA_SIMULATED / 'product_analysis.csv'
-df_analysis.to_csv(output_analysis, index=False)
-print(f"✓ Análisis completo guardado: {output_analysis}")
+df_filtered.to_csv(output_analysis, index=False)
+print(f"✓ Análisis completo (con tiers) guardado: {output_analysis}")
 
-# Guardar solo productos filtrados (válidos)
-output_filtered = DATA_SIMULATED / 'products_filtered.csv'
-df_filtered.to_csv(output_filtered, index=False)
-print(f"✓ Productos válidos guardados: {output_filtered}")
-print(f"  Total productos válidos: {len(df_filtered)}")
+# Guardar solo productos aptos (Tier 1 + Tier 2)
+output_deployment = DATA_SIMULATED / 'products_filtered.csv'
+df_deployment.to_csv(output_deployment, index=False)
+print(f"✓ Productos APTOS (Tier 1+2) guardados: {output_deployment}")
+print(f"  Total productos aptos: {len(df_deployment)}")
+
+# Guardar Tier 1 (deployment inmediato)
+output_tier1 = DATA_SIMULATED / 'products_tier1_deployment.csv'
+df_tier1.to_csv(output_tier1, index=False)
+print(f"✓ Productos Tier 1 (deployment) guardados: {output_tier1}")
+print(f"  Total Tier 1: {len(df_tier1)}")
+
+# Guardar rechazados para análisis
+output_rejected = DATA_SIMULATED / 'products_tier3_rejected.csv'
+df_rejected.to_csv(output_rejected, index=False)
+print(f"✓ Productos Tier 3 (rechazados) guardados: {output_rejected}")
+print(f"  Total rechazados: {len(df_rejected)}")
 print()
 
 # ============================================================================
@@ -360,43 +467,58 @@ print("RESUMEN EJECUTIVO - ANÁLISIS POR PRODUCTO")
 print("="*80)
 print()
 
-print(f"📊 DATASET COMPLETO:")
-print(f"  • Total registros (métricas): {len(df_analysis)}")
+print(f"📊 DATASET INICIAL:")
+print(f"  • Total registros analizados: {len(df_analysis)}")
 print(f"  • Productos únicos: {df_analysis['product_id'].nunique()}")
 print()
 
-print(f"✅ PRODUCTOS VÁLIDOS (después de filtrado):")
-print(f"  • Total registros válidos: {len(df_filtered)}")
-print(f"  • Productos únicos válidos: {df_filtered['product_id'].nunique()}")
-print(f"  • Tasa de retención: {len(df_filtered)/len(df_analysis)*100:.1f}%")
+# Stats por tier
+df_reg_tier = df_reg if len(df_reg) > 0 else pd.DataFrame()
+df_clf_tier = df_clf if len(df_clf) > 0 else pd.DataFrame()
+
+tier1_reg = len(df_reg_tier[df_reg_tier['tier'] == 'Tier 1 - Deployment']) if len(df_reg_tier) > 0 else 0
+tier2_reg = len(df_reg_tier[df_reg_tier['tier'] == 'Tier 2 - Monitoring']) if len(df_reg_tier) > 0 else 0
+tier3_reg = len(df_reg_tier[df_reg_tier['tier'] == 'Tier 3 - Rechazado']) if len(df_reg_tier) > 0 else 0
+
+tier1_clf = len(df_clf_tier[df_clf_tier['tier'] == 'Tier 1 - Deployment']) if len(df_clf_tier) > 0 else 0
+tier2_clf = len(df_clf_tier[df_clf_tier['tier'] == 'Tier 2 - Monitoring']) if len(df_clf_tier) > 0 else 0
+tier3_clf = len(df_clf_tier[df_clf_tier['tier'] == 'Tier 3 - Rechazado']) if len(df_clf_tier) > 0 else 0
+
+print(f"🎯 CLASIFICACIÓN POR TIERS (según calidad del modelo):")
+print(f"")
+print(f"  REGRESIÓN:")
+print(f"    ✅ Tier 1 (Deployment): {tier1_reg} productos ({tier1_reg/len(df_reg_tier)*100:.1f}% del total)" if len(df_reg_tier) > 0 else "    Sin datos")
+print(f"    ⚠️  Tier 2 (Monitoring): {tier2_reg} productos ({tier2_reg/len(df_reg_tier)*100:.1f}%)" if len(df_reg_tier) > 0 else "")
+print(f"    ❌ Tier 3 (Rechazado): {tier3_reg} productos ({tier3_reg/len(df_reg_tier)*100:.1f}%)" if len(df_reg_tier) > 0 else "")
+print(f"")
+print(f"  CLASIFICACIÓN:")
+print(f"    ✅ Tier 1 (Deployment): {tier1_clf} productos ({tier1_clf/len(df_clf_tier)*100:.1f}% del total)" if len(df_clf_tier) > 0 else "    Sin datos")
+print(f"    ⚠️  Tier 2 (Monitoring): {tier2_clf} productos ({tier2_clf/len(df_clf_tier)*100:.1f}%)" if len(df_clf_tier) > 0 else "")
+print(f"    ❌ Tier 3 (Rechazado): {tier3_clf} productos ({tier3_clf/len(df_clf_tier)*100:.1f}%)" if len(df_clf_tier) > 0 else "")
 print()
 
-if len(df_reg) > 0:
-    print(f"📈 REGRESIÓN (Predicción de ventas):")
-    print(f"  • Productos evaluados: {len(df_reg)}")
-    print(f"  • Mejor producto: {df_reg.nsmallest(1, 'rmse').iloc[0]['product_id']}")
-    print(f"    RMSE: {df_reg['rmse'].min():.2f}")
-    print(f"  • RMSE promedio: {df_reg['rmse'].mean():.2f} (std: {df_reg['rmse'].std():.2f})")
-    print(f"  • MAE promedio: {df_reg['mae'].mean():.2f}")
-    print()
+print(f"📈 PRODUCTOS APTOS PARA DEPLOYMENT:")
+print(f"  • Total APTOS (Tier 1 + Tier 2): {len(df_deployment)} ({len(df_deployment)/len(df_filtered)*100:.1f}%)")
+print(f"  • Tier 1 (usar ya): {len(df_tier1)} productos")
+print(f"  • Tier 2 (monitorear): {len(df_deployment) - len(df_tier1)} productos")
+print(f"  • Tier 3 (NO usar): {len(df_rejected)} productos ({len(df_rejected)/len(df_filtered)*100:.1f}%)")
+print()
 
-if len(df_clf) > 0:
-    print(f"🎯 CLASIFICACIÓN (Predicción de urgencias):")
-    print(f"  • Productos evaluados: {len(df_clf)}")
-    print(f"  • Mejor producto: {df_clf.nlargest(1, 'f1').iloc[0]['product_id']}")
-    print(f"    F1-Score: {df_clf['f1'].max():.3f}")
-    print(f"  • F1-Score promedio: {df_clf['f1'].mean():.3f} (std: {df_clf['f1'].std():.3f})")
-    print(f"  • Precision promedio: {df_clf['precision'].mean():.3f}")
-    print(f"  • Recall promedio: {df_clf['recall'].mean():.3f}")
-    print(f"  • ROC-AUC promedio: {df_clf['auc'].mean():.3f}")
+if len(df_clf_tier[df_clf_tier['tier'].isin(['Tier 1 - Deployment', 'Tier 2 - Monitoring'])]) > 0:
+    df_clf_good = df_clf_tier[df_clf_tier['tier'].isin(['Tier 1 - Deployment', 'Tier 2 - Monitoring'])]
+    print(f"🎯 MÉTRICAS - PRODUCTOS APTOS (Clasificación):")
+    print(f"  • F1-Score promedio: {df_clf_good['f1'].mean():.3f}")
+    print(f"  • Precision promedio: {df_clf_good['precision'].mean():.3f}")
+    print(f"  • Recall promedio: {df_clf_good['recall'].mean():.3f}")
+    print(f"  • ROC-AUC promedio: {df_clf_good['auc'].mean():.3f}")
     print()
 
 print(f"📁 OUTPUTS GENERADOS:")
-print(f"  • product_analysis.csv ({len(df_analysis)} registros)")
-print(f"  • products_filtered.csv ({len(df_filtered)} registros)")
-print(f"  • 05_data_distribution.png")
-print(f"  • 05_model_performance.png")
-print(f"  • 05_samples_vs_performance.png")
+print(f"  • product_analysis.csv - Todos los productos con tier asignado")
+print(f"  • products_filtered.csv - Solo Tier 1+2 (APTOS para usar): {len(df_deployment)} productos")
+print(f"  • products_tier1_deployment.csv - Solo Tier 1: {len(df_tier1)} productos")
+print(f"  • products_tier3_rejected.csv - Tier 3 (rechazados): {len(df_rejected)} productos")
+print(f"  • 05_*.png (3 visualizaciones)")
 print()
 
 print("="*80)
@@ -404,13 +526,16 @@ print("✓ ANÁLISIS POR PRODUCTO COMPLETADO")
 print("="*80)
 print()
 
-print("CONCLUSIÓN:")
-print(f"  ✓ {len(df_filtered)} productos válidos identificados")
-print(f"  ✓ {len(df_analysis) - len(df_filtered)} productos filtrados por datos insuficientes")
-print(f"  ✓ Dataset limpio generado para análisis de ROI")
+print("💡 RECOMENDACIÓN:")
+print(f"  ✅ DEPLOYMENT INMEDIATO: {len(df_tier1)} productos Tier 1")
+print(f"  ⚠️  MONITOREAR: {len(df_deployment) - len(df_tier1)} productos Tier 2")
+print(f"  ❌ NO IMPLEMENTAR: {len(df_rejected)} productos Tier 3")
+print()
+print(f"  → Usar products_filtered.csv para análisis de ROI")
+print(f"  → Usar products_tier1_deployment.csv para deployment inicial")
 print()
 
 print("PRÓXIMO PASO:")
 print(f"  → Script 06: Valor Operativo (06_valor_operativo.py)")
-print(f"  → Calcular ROI solo con productos confiables")
+print(f"  → Calcular ROI solo con productos APTOS (Tier 1+2)")
 print()
