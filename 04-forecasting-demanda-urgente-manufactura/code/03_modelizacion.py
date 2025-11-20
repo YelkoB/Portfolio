@@ -27,12 +27,17 @@ Clasificación (urgencias):
 - Precision, Recall, F1-Score, ROC-AUC
 
 INPUT:
-- data/simulated/features_weekly.csv
+- data/simulated/features_weekly_granular.csv (producto-tienda)
+- data/simulated/features_weekly_aggregated.csv (producto-base) [PENDIENTE]
+- data/simulated/feature_list.json
 
 OUTPUT:
-- data/simulated/model_results.csv - Resultados por modelo y producto
-- data/simulated/best_models.csv - Mejor modelo por producto
-- models/ - Modelos entrenados guardados (pickle)
+- models/granular/{product_id}_rf_reg.pkl - Modelos Random Forest (regresión)
+- models/granular/{product_id}_xgb_reg.pkl - Modelos XGBoost (regresión)
+- models/granular/{product_id}_rf_clf.pkl - Modelos Random Forest (clasificación)
+- models/granular/{product_id}_xgb_clf.pkl - Modelos XGBoost (clasificación)
+- models/aggregated/... [PENDIENTE]
+- data/simulated/train_metrics_granular.csv - Métricas de entrenamiento
 - results/figures/03_*.png - Visualizaciones de comparación
 """
 
@@ -74,20 +79,27 @@ print("MODELIZACIÓN - COMPARACIÓN MULTI-MODELO")
 print("="*80)
 print()
 
-# Crear directorio para modelos
-MODELS_DIR = PROJECT_ROOT / 'models'
-MODELS_DIR.mkdir(exist_ok=True)
+# Crear directorios para modelos (granular y agregado)
+MODELS_DIR_GRANULAR = PROJECT_ROOT / 'models' / 'granular'
+MODELS_DIR_AGGREGATED = PROJECT_ROOT / 'models' / 'aggregated'
+MODELS_DIR_GRANULAR.mkdir(parents=True, exist_ok=True)
+MODELS_DIR_AGGREGATED.mkdir(parents=True, exist_ok=True)
+
+print(f"✓ Directorios de modelos creados:")
+print(f"  • {MODELS_DIR_GRANULAR}")
+print(f"  • {MODELS_DIR_AGGREGATED}")
+print()
 
 # ============================================================================
-# 1. CARGA DE DATOS
+# 1. CARGA DE DATOS (GRANULAR)
 # ============================================================================
-print("1. CARGANDO DATOS CON FEATURES")
+print("1. CARGANDO DATOS CON FEATURES (GRANULAR)")
 print("-" * 80)
 
-df = pd.read_csv(DATA_SIMULATED / 'features_weekly.csv')
+df = pd.read_csv(DATA_SIMULATED / 'features_weekly_granular.csv')
 df['week_start'] = pd.to_datetime(df['week_start'])
 
-print(f"✓ Dataset cargado: {df.shape}")
+print(f"✓ Dataset GRANULAR cargado: {df.shape}")
 print(f"  Productos: {df['product_id'].nunique()}")
 print(f"  Período: {df['week_start'].min()} a {df['week_start'].max()}")
 print()
@@ -97,6 +109,10 @@ with open(DATA_SIMULATED / 'feature_list.json', 'r') as f:
     feature_list = json.load(f)
 
 print(f"✓ Features cargadas: {len(feature_list['all_features'])} totales")
+print()
+
+print("💡 NOTA: Este script procesa nivel GRANULAR (producto-tienda)")
+print("   Nivel AGREGADO pendiente (requiere features_weekly_aggregated.csv)")
 print()
 
 # ============================================================================
@@ -443,7 +459,7 @@ for product_id in tqdm(products, desc="Procesando productos"):
         })
 
         # Guardar modelo
-        model_path = MODELS_DIR / f'{product_id}_rf_reg.pkl'
+        model_path = MODELS_DIR_GRANULAR / f'{product_id}_rf_reg.pkl'
         with open(model_path, 'wb') as f:
             pickle.dump(model_rf_reg, f)
 
@@ -463,7 +479,7 @@ for product_id in tqdm(products, desc="Procesando productos"):
         })
 
         # Guardar modelo
-        model_path = MODELS_DIR / f'{product_id}_xgb_reg.pkl'
+        model_path = MODELS_DIR_GRANULAR / f'{product_id}_xgb_reg.pkl'
         with open(model_path, 'wb') as f:
             pickle.dump(model_xgb_reg, f)
 
@@ -483,7 +499,7 @@ for product_id in tqdm(products, desc="Procesando productos"):
         })
 
         # Guardar modelo
-        model_path = MODELS_DIR / f'{product_id}_rf_clf.pkl'
+        model_path = MODELS_DIR_GRANULAR / f'{product_id}_rf_clf.pkl'
         with open(model_path, 'wb') as f:
             pickle.dump(model_rf_clf, f)
 
@@ -503,7 +519,7 @@ for product_id in tqdm(products, desc="Procesando productos"):
         })
 
         # Guardar modelo
-        model_path = MODELS_DIR / f'{product_id}_xgb_clf.pkl'
+        model_path = MODELS_DIR_GRANULAR / f'{product_id}_xgb_clf.pkl'
         with open(model_path, 'wb') as f:
             pickle.dump(model_xgb_clf, f)
 
@@ -513,7 +529,7 @@ df_results = pd.DataFrame(results)
 print()
 print(f"✓ Modelos entrenados: {len(results)}")
 print(f"  Productos procesados: {df_results['product_id'].nunique()}")
-print(f"  Modelos guardados en: {MODELS_DIR}")
+print(f"  Modelos guardados en: {MODELS_DIR_GRANULAR}")
 print()
 
 # ============================================================================
@@ -554,17 +570,19 @@ if len(df_clf) > 0:
     print()
 
 # ============================================================================
-# 7. GUARDAR RESULTADOS
+# 7. GUARDAR RESULTADOS (GRANULAR)
 # ============================================================================
-print("6. GUARDANDO RESULTADOS")
+print("6. GUARDANDO RESULTADOS (GRANULAR)")
 print("-" * 80)
 
-# Guardar resultados completos
-output_file = DATA_SIMULATED / 'model_results.csv'
+# Guardar métricas de entrenamiento (granular)
+output_file = DATA_SIMULATED / 'train_metrics_granular.csv'
 df_results.to_csv(output_file, index=False)
-print(f"✓ Resultados guardados: {output_file}")
+print(f"✓ Métricas de entrenamiento guardadas: {output_file}")
+print(f"  Registros: {len(df_results)}")
+print(f"  Modelos entrenados en {MODELS_DIR_GRANULAR}")
 
-# Guardar mejores modelos
+# Guardar mejores modelos por producto
 best_models = []
 if len(best_reg) > 0:
     best_reg['metric_type'] = 'rmse'
@@ -575,7 +593,7 @@ if len(best_clf) > 0:
 
 if len(best_models) > 0:
     df_best = pd.concat(best_models, ignore_index=True)
-    best_file = DATA_SIMULATED / 'best_models.csv'
+    best_file = DATA_SIMULATED / 'best_models_granular.csv'
     df_best.to_csv(best_file, index=False)
     print(f"✓ Mejores modelos guardados: {best_file}")
 
@@ -663,7 +681,7 @@ print()
 print(f"📊 MODELIZACIÓN COMPLETADA:")
 print(f"  • Productos procesados: {df_results['product_id'].nunique()}")
 print(f"  • Total modelos entrenados: {len(results)}")
-print(f"  • Modelos guardados en: {MODELS_DIR}")
+print(f"  • Modelos guardados en: {MODELS_DIR_GRANULAR}")
 print()
 print(f"🤖 MODELOS EVALUADOS:")
 print(f"  • Random Forest (Regresión + Clasificación)")
@@ -690,7 +708,7 @@ print()
 print(f"📁 OUTPUTS GENERADOS:")
 print(f"  • {output_file.name}")
 print(f"  • {best_file.name}")
-print(f"  • {len(list(MODELS_DIR.glob('*.pkl')))} modelos guardados (.pkl)")
+print(f"  • {len(list(MODELS_DIR_GRANULAR.glob('*.pkl')))} modelos guardados (.pkl)")
 print(f"  • 03_regression_comparison.png")
 print(f"  • 03_classification_comparison.png")
 print()
