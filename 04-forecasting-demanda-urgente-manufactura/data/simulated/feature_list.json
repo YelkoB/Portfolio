@@ -1,5 +1,6 @@
 {
   "all_features": [
+    "product_base",
     "is_holiday",
     "is_holiday_week_before",
     "is_holiday_week_after",
