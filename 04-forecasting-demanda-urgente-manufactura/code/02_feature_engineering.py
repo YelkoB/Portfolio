@@ -805,7 +805,7 @@ if len(target_corr) > 0:
         print(f"  • {feat:40s}: {corr:+.3f}")
 print()
 print(f"📁 OUTPUTS GENERADOS:")
-print(f"  • {output_file.name} - Dataset listo para modelización (H={PREDICTION_HORIZON})")
+print(f"  • {output_file_granular.name} - Dataset listo para modelización (H={PREDICTION_HORIZON})")
 print(f"  • {feature_list_file.name} - Lista de features por tipo")
 print(f"  • 02_correlation_matrix.png")
 print(f"  • 02_feature_distributions.png")
