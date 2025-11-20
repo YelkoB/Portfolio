@@ -2,12 +2,18 @@
 05. Valor Operativo - Cuantificación de ROI
 ============================================
 
+⚠️  IMPORTANTE: Ejecutar DESPUÉS del script 06_analisis_por_producto.py
+   Este script requiere products_filtered.csv generado por el script 06.
+
 OBJETIVO:
 Cuantificar el valor de negocio del sistema de predicción de urgencias mediante:
 1. Cálculo de costos evitados (urgencias vs planificación normal)
 2. Métricas de negocio (stock, backorders, costos de almacenamiento)
 3. ROI del sistema de predicción
 4. Comparación: escenario CON vs SIN predicción
+
+NOTA: Solo se analizan productos confiables (filtrados en script 06) para
+      garantizar estimaciones de ROI realistas.
 
 SUPUESTOS DE NEGOCIO:
 - Costo pedido urgente: 1.5x costo normal
@@ -16,6 +22,7 @@ SUPUESTOS DE NEGOCIO:
 - Nivel de servicio target: 95%
 
 INPUT:
+- data/simulated/products_filtered.csv (del script 06 - solo productos confiables)
 - data/simulated/test_predictions.csv
 - data/simulated/validation_metrics.csv
 - data/simulated/features_weekly.csv
@@ -92,6 +99,12 @@ print()
 print("2. CARGANDO DATOS")
 print("-" * 80)
 
+# Cargar productos filtrados (del script 06)
+df_products_filtered = pd.read_csv(DATA_SIMULATED / 'products_filtered.csv')
+valid_products = df_products_filtered['product_id'].unique()
+
+print(f"✓ Productos válidos (del script 06): {len(valid_products)}")
+
 df_pred = pd.read_csv(DATA_SIMULATED / 'test_predictions.csv')
 df_pred['week_start'] = pd.to_datetime(df_pred['week_start'])
 
@@ -103,6 +116,23 @@ df_features['week_start'] = pd.to_datetime(df_features['week_start'])
 print(f"✓ Predicciones cargadas: {len(df_pred):,}")
 print(f"✓ Métricas cargadas: {len(df_metrics)}")
 print(f"✓ Features cargados: {len(df_features):,}")
+print()
+
+# Filtrar solo productos válidos (los que pasaron el filtrado del script 06)
+print("2.5. FILTRADO POR PRODUCTOS CONFIABLES")
+print("-" * 80)
+
+df_pred_before = len(df_pred)
+df_pred = df_pred[df_pred['product_id'].isin(valid_products)].copy()
+print(f"✓ Predicciones filtradas: {len(df_pred):,} (eliminadas: {df_pred_before - len(df_pred):,})")
+
+df_metrics_before = len(df_metrics)
+df_metrics = df_metrics[df_metrics['product_id'].isin(valid_products)].copy()
+print(f"✓ Métricas filtradas: {len(df_metrics)} (eliminadas: {df_metrics_before - len(df_metrics)})")
+
+df_features_before = len(df_features)
+df_features = df_features[df_features['product_id'].isin(valid_products)].copy()
+print(f"✓ Features filtrados: {len(df_features):,} (eliminados: {df_features_before - len(df_features):,})")
 print()
 
 # Filtrar solo regresión y clasificación válidas
