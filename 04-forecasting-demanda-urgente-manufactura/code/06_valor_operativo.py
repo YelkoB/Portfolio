@@ -1,6 +1,9 @@
 """
-05. Valor Operativo - Cuantificación de ROI
+06. Valor Operativo - Cuantificación de ROI
 ============================================
+
+⚠️  IMPORTANTE: Ejecutar DESPUÉS del script 05_analisis_por_producto.py
+   Este script requiere products_filtered.csv generado por el script 05.
 
 OBJETIVO:
 Cuantificar el valor de negocio del sistema de predicción de urgencias mediante:
@@ -9,6 +12,9 @@ Cuantificar el valor de negocio del sistema de predicción de urgencias mediante
 3. ROI del sistema de predicción
 4. Comparación: escenario CON vs SIN predicción
 
+NOTA: Solo se analizan productos confiables (filtrados en script 05) para
+      garantizar estimaciones de ROI realistas.
+
 SUPUESTOS DE NEGOCIO:
 - Costo pedido urgente: 1.5x costo normal
 - Costo de stock excess: 0.1 por unidad/semana
@@ -16,13 +22,15 @@ SUPUESTOS DE NEGOCIO:
 - Nivel de servicio target: 95%
 
 INPUT:
-- data/simulated/test_predictions.csv
-- data/simulated/validation_metrics.csv
-- data/simulated/features_weekly.csv
+- data/simulated/products_filtered.csv (del script 05 - solo productos confiables)
+- data/simulated/test_predictions.csv (del script 04)
+- data/simulated/validation_metrics.csv (del script 04)
+- data/simulated/features_weekly.csv (del script 02)
 
 OUTPUT:
 - data/simulated/roi_analysis.csv
-- results/figures/05_*.png - Visualizaciones de ROI
+- data/simulated/cost_comparison.csv
+- results/figures/06_*.png - Visualizaciones de ROI
 """
 
 import sys
@@ -92,6 +100,12 @@ print()
 print("2. CARGANDO DATOS")
 print("-" * 80)
 
+# Cargar productos filtrados (del script 06)
+df_products_filtered = pd.read_csv(DATA_SIMULATED / 'products_filtered.csv')
+valid_products = df_products_filtered['product_id'].unique()
+
+print(f"✓ Productos válidos (del script 06): {len(valid_products)}")
+
 df_pred = pd.read_csv(DATA_SIMULATED / 'test_predictions.csv')
 df_pred['week_start'] = pd.to_datetime(df_pred['week_start'])
 
@@ -105,59 +119,21 @@ print(f"✓ Métricas cargadas: {len(df_metrics)}")
 print(f"✓ Features cargados: {len(df_features):,}")
 print()
 
-# ============================================================================
-# 2.5. FILTRAR PRODUCTOS CON DATOS INSUFICIENTES
-# ============================================================================
-print("2.5. FILTRADO DE PRODUCTOS CON DATOS INSUFICIENTES")
+# Filtrar solo productos válidos (los que pasaron el filtrado del script 06)
+print("2.5. FILTRADO POR PRODUCTOS CONFIABLES")
 print("-" * 80)
 
-# Contar muestras de test por producto y task
-test_samples = df_pred.groupby(['product_id', 'task']).size().reset_index(name='test_samples')
+df_pred_before = len(df_pred)
+df_pred = df_pred[df_pred['product_id'].isin(valid_products)].copy()
+print(f"✓ Predicciones filtradas: {len(df_pred):,} (eliminadas: {df_pred_before - len(df_pred):,})")
 
-# Contar urgencias (actual=1) para clasificación
-df_pred_clf_temp = df_pred[df_pred['task'] == 'classification'].copy()
-urgencias_test = df_pred_clf_temp.groupby('product_id')['actual'].sum().reset_index(name='urgencias_test')
+df_metrics_before = len(df_metrics)
+df_metrics = df_metrics[df_metrics['product_id'].isin(valid_products)].copy()
+print(f"✓ Métricas filtradas: {len(df_metrics)} (eliminadas: {df_metrics_before - len(df_metrics)})")
 
-# Criterios de filtrado (mismos que en 04_validacion.py)
-MIN_TEST_SAMPLES = 20
-MIN_URGENCIAS_TEST = 5
-
-# Fusionar conteos con predicciones
-df_pred = df_pred.merge(test_samples, on=['product_id', 'task'], how='left')
-df_pred['test_samples'] = df_pred['test_samples'].fillna(0).astype(int)
-
-# Para clasificación, añadir conteo de urgencias
-df_pred = df_pred.merge(urgencias_test, on='product_id', how='left')
-df_pred['urgencias_test'] = df_pred['urgencias_test'].fillna(0).astype(int)
-
-# Guardar predicciones originales
-df_pred_original = df_pred.copy()
-
-# Aplicar filtros
-df_pred = df_pred[
-    (df_pred['test_samples'] >= MIN_TEST_SAMPLES) &
-    ((df_pred['task'] == 'regression') |
-     ((df_pred['task'] == 'classification') & (df_pred['urgencias_test'] >= MIN_URGENCIAS_TEST)))
-].copy()
-
-# Filtrar también df_metrics para consistencia
-productos_validos = df_pred['product_id'].unique()
-df_metrics_original = df_metrics.copy()
-df_metrics = df_metrics[df_metrics['product_id'].isin(productos_validos)].copy()
-
-predicciones_eliminadas = len(df_pred_original) - len(df_pred)
-productos_eliminados = len(df_metrics_original) - len(df_metrics)
-print(f"⚠️  Criterios de filtrado:")
-print(f"   • Mínimo de muestras en test: {MIN_TEST_SAMPLES}")
-print(f"   • Mínimo de urgencias en test (clasificación): {MIN_URGENCIAS_TEST}")
-print()
-print(f"✓ Predicciones antes del filtro: {len(df_pred_original):,}")
-print(f"✓ Predicciones después del filtro: {len(df_pred):,}")
-print(f"❌ Predicciones eliminadas: {predicciones_eliminadas:,} ({predicciones_eliminadas/len(df_pred_original)*100:.1f}%)")
-print()
-print(f"✓ Productos antes del filtro: {len(df_metrics_original)}")
-print(f"✓ Productos después del filtro: {len(df_metrics)}")
-print(f"❌ Productos eliminados: {productos_eliminados} ({productos_eliminados/len(df_metrics_original)*100:.1f}%)")
+df_features_before = len(df_features)
+df_features = df_features[df_features['product_id'].isin(valid_products)].copy()
+print(f"✓ Features filtrados: {len(df_features):,} (eliminados: {df_features_before - len(df_features):,})")
 print()
 
 # Filtrar solo regresión y clasificación válidas
@@ -475,8 +451,8 @@ for bars in [bars1, bars2]:
                ha='center', va='bottom', fontsize=9)
 
 plt.tight_layout()
-plt.savefig(FIGURES / '05_cost_comparison.png', dpi=100, bbox_inches='tight')
-print(f"✓ Guardado: {FIGURES / '05_cost_comparison.png'}")
+plt.savefig(FIGURES / '06_cost_comparison.png', dpi=100, bbox_inches='tight')
+print(f"✓ Guardado: {FIGURES / '06_cost_comparison.png'}")
 plt.close()
 
 # B. ROI visualization
@@ -521,8 +497,8 @@ for year, benefit in zip(years, cumulative_benefit):
                 ha='center', va='bottom', fontsize=9)
 
 plt.tight_layout()
-plt.savefig(FIGURES / '05_roi_analysis.png', dpi=100, bbox_inches='tight')
-print(f"✓ Guardado: {FIGURES / '05_roi_analysis.png'}")
+plt.savefig(FIGURES / '06_roi_analysis.png', dpi=100, bbox_inches='tight')
+print(f"✓ Guardado: {FIGURES / '06_roi_analysis.png'}")
 plt.close()
 
 # C. Ahorros por producto
@@ -537,8 +513,8 @@ ax.tick_params(axis='x', rotation=45)
 ax.grid(True, alpha=0.3, axis='y')
 
 plt.tight_layout()
-plt.savefig(FIGURES / '05_savings_by_product.png', dpi=100, bbox_inches='tight')
-print(f"✓ Guardado: {FIGURES / '05_savings_by_product.png'}")
+plt.savefig(FIGURES / '06_savings_by_product.png', dpi=100, bbox_inches='tight')
+print(f"✓ Guardado: {FIGURES / '06_savings_by_product.png'}")
 plt.close()
 
 print()
@@ -575,9 +551,9 @@ print()
 print(f"📁 OUTPUTS GENERADOS:")
 print(f"  • {roi_file.name}")
 print(f"  • {comparison_file.name}")
-print(f"  • 05_cost_comparison.png")
-print(f"  • 05_roi_analysis.png")
-print(f"  • 05_savings_by_product.png")
+print(f"  • 06_cost_comparison.png")
+print(f"  • 06_roi_analysis.png")
+print(f"  • 06_savings_by_product.png")
 print()
 print("="*80)
 print("✓ ANÁLISIS DE VALOR OPERATIVO COMPLETADO")

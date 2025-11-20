@@ -1,5 +1,5 @@
 """
-06. Análisis Detallado por Producto
+05. Análisis Detallado por Producto
 ====================================
 
 OBJETIVO:
@@ -20,13 +20,13 @@ CRITERIOS DE FILTRADO:
 - Al menos 1 modelo entrenado exitosamente
 
 INPUT:
-- data/simulated/validation_metrics.csv
-- data/simulated/test_predictions.csv
+- data/simulated/validation_metrics.csv (del script 04)
+- data/simulated/test_predictions.csv (del script 04)
 
 OUTPUT:
 - data/simulated/product_analysis.csv - Análisis completo por producto
-- data/simulated/products_filtered.csv - Solo productos válidos
-- results/figures/06_*.png - Visualizaciones de análisis
+- data/simulated/products_filtered.csv - Solo productos válidos (para script 06)
+- results/figures/05_*.png - Visualizaciones de análisis
 """
 
 import sys
@@ -293,8 +293,8 @@ if len(df_clf) > 0:
     axes[1].grid(True, alpha=0.3)
 
 plt.tight_layout()
-plt.savefig(FIGURES / '06_data_distribution.png', dpi=100, bbox_inches='tight')
-print(f"✓ Guardado: {FIGURES / '06_data_distribution.png'}")
+plt.savefig(FIGURES / '05_data_distribution.png', dpi=100, bbox_inches='tight')
+print(f"✓ Guardado: {FIGURES / '05_data_distribution.png'}")
 plt.close()
 
 # 9.2 Rendimiento por modelo
@@ -320,8 +320,8 @@ if len(df_filtered) > 0:
         axes[1].grid(True, alpha=0.3, axis='y')
 
     plt.tight_layout()
-    plt.savefig(FIGURES / '06_model_performance.png', dpi=100, bbox_inches='tight')
-    print(f"✓ Guardado: {FIGURES / '06_model_performance.png'}")
+    plt.savefig(FIGURES / '05_model_performance.png', dpi=100, bbox_inches='tight')
+    print(f"✓ Guardado: {FIGURES / '05_model_performance.png'}")
     plt.close()
 
 # 9.3 Scatter: Muestras vs Performance
@@ -345,8 +345,8 @@ if len(df_reg) > 0 or len(df_clf) > 0:
         axes[1].grid(True, alpha=0.3)
 
     plt.tight_layout()
-    plt.savefig(FIGURES / '06_samples_vs_performance.png', dpi=100, bbox_inches='tight')
-    print(f"✓ Guardado: {FIGURES / '06_samples_vs_performance.png'}")
+    plt.savefig(FIGURES / '05_samples_vs_performance.png', dpi=100, bbox_inches='tight')
+    print(f"✓ Guardado: {FIGURES / '05_samples_vs_performance.png'}")
     plt.close()
 
 print()
@@ -394,9 +394,9 @@ if len(df_clf) > 0:
 print(f"📁 OUTPUTS GENERADOS:")
 print(f"  • product_analysis.csv ({len(df_analysis)} registros)")
 print(f"  • products_filtered.csv ({len(df_filtered)} registros)")
-print(f"  • 06_data_distribution.png")
-print(f"  • 06_model_performance.png")
-print(f"  • 06_samples_vs_performance.png")
+print(f"  • 05_data_distribution.png")
+print(f"  • 05_model_performance.png")
+print(f"  • 05_samples_vs_performance.png")
 print()
 
 print("="*80)
@@ -411,6 +411,6 @@ print(f"  ✓ Dataset limpio generado para análisis de ROI")
 print()
 
 print("PRÓXIMO PASO:")
-print(f"  → Ejecutar 05_valor_operativo.py con productos filtrados")
+print(f"  → Script 06: Valor Operativo (06_valor_operativo.py)")
 print(f"  → Calcular ROI solo con productos confiables")
 print()
