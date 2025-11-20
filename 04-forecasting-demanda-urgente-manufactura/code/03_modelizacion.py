@@ -555,6 +555,7 @@ print()
 
 # Mejor modelo por producto (regresión)
 df_reg = df_results[df_results['task'] == 'regression'].copy()
+best_reg = pd.DataFrame()  # Inicializar como DataFrame vacío
 if len(df_reg) > 0:
     best_reg = df_reg.loc[df_reg.groupby('product_id')['rmse'].idxmin()]
     print(f"Mejor modelo de regresión por producto:")
@@ -563,6 +564,7 @@ if len(df_reg) > 0:
 
 # Mejor modelo por producto (clasificación)
 df_clf = df_results[df_results['task'] == 'classification'].copy()
+best_clf = pd.DataFrame()  # Inicializar como DataFrame vacío
 if len(df_clf) > 0:
     best_clf = df_clf.loc[df_clf.groupby('product_id')['f1'].idxmax()]
     print(f"Mejor modelo de clasificación por producto:")
