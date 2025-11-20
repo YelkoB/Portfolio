@@ -745,25 +745,39 @@ df_top_agg = df_aggregated_proc[df_aggregated_proc['product_id'].isin(top_produc
 print(f"Procesando {len(top_products_agg)} productos base...")
 print()
 
-# IMPORTANTE: El script ya procesó df_top (granular) en las secciones 3-8
-# Ahora procesamos df_top_agg (agregado) con la misma lógica
-# Nota: Para evitar duplicar 500+ líneas de código, ejecutar el mismo flujo
-print("⚠️  NOTA: Para completar procesamiento del nivel agregado:")
-print("    El flujo de feature engineering (secciones 3-8) debe ejecutarse")
-print("    sobre df_top_agg en lugar de df_top.")
-print("    Por simplicidad, este script procesa solo el nivel GRANULAR.")
-print("    Para procesar AGREGADO, ejecute el script modificando línea 138-139:")
-print("    df = df_aggregated.copy()")
-print("    df_ranking = df_ranking_aggregated.copy()")
+# Procesar features para nivel agregado (misma lógica que granular)
+all_features_agg = []
+
+for product_id in tqdm(top_products_agg, desc="Creando features (AGREGADO)"):
+    product_df = df_top_agg[df_top_agg['product_id'] == product_id].copy()
+    product_features = create_features_for_product(product_df, product_id)
+    all_features_agg.append(product_features)
+
+# Concatenar todos
+df_features_agg = pd.concat(all_features_agg, ignore_index=True)
+
+# Eliminar última fila de cada producto (target es NaN)
+df_features_agg = df_features_agg[df_features_agg['is_urgent_target'].notna()].copy()
+
 print()
-print("    O mejor aún: próxima versión refactorizará en función reutilizable.")
+print(f"✓ Features AGREGADAS creadas SIN data leakage")
+print(f"  Total registros: {len(df_features_agg):,}")
+print(f"  Total columnas: {len(df_features_agg.columns)}")
+print(f"  Productos base: {df_features_agg['product_id'].nunique()}")
 print()
 
-# Placeholder: Guardar agregado vacío por ahora
-# En la próxima iteración, refactorizaremos el código en una función
+# Renombrar product_id de vuelta a product_base
+df_features_agg = df_features_agg.rename(columns={'product_id': 'product_base'})
+
+# Guardar dataset agregado
 output_file_aggregated = DATA_SIMULATED / 'features_weekly_aggregated.csv'
-print(f"⚠️  Output agregado: {output_file_aggregated}")
-print(f"    Status: PENDIENTE (próxima iteración)")
+df_features_agg.to_csv(output_file_aggregated, index=False)
+
+print(f"✓ Dataset AGREGADO guardado: {output_file_aggregated}")
+print(f"  Registros: {len(df_features_agg):,}")
+print(f"  Productos base: {df_features_agg['product_base'].nunique()}")
+print(f"  Columnas totales: {len(df_features_agg.columns)}")
+print(f"  Tamaño: {output_file_aggregated.stat().st_size / (1024*1024):.2f} MB")
 print()
 
 # ============================================================================
@@ -774,13 +788,14 @@ print("="*80)
 print("RESUMEN EJECUTIVO")
 print("="*80)
 print()
-print(f"📊 DATASET PROCESADO (SIN DATA LEAKAGE):")
-print(f"  • TOP {TOP_N} productos GRANULARES procesados")
-print(f"  • {len(df_features):,} registros totales")
+print(f"📊 DATASETS PROCESADOS (SIN DATA LEAKAGE):")
+print(f"  ✅ GRANULAR (producto-tienda):")
+print(f"     • {len(df_features):,} registros")
+print(f"     • {df_features['product_id'].nunique()} productos")
+print(f"  ✅ AGREGADO (producto-base):")
+print(f"     • {len(df_features_agg):,} registros")
+print(f"     • {df_features_agg['product_base'].nunique()} productos base")
 print(f"  • {len(feature_cols)} features creados (SOLO datos pasados)")
-print()
-print(f"⚠️  NOTA: Nivel AGREGADO pendiente de implementación")
-print(f"    Próxima iteración: refactorizar en función reutilizable")
 print()
 print(f"🔧 ESTRATEGIA ANTI-LEAKAGE:")
 print(f"  ✅ Todos los rolling stats: .shift(1) → solo hasta t-1")
@@ -805,7 +820,8 @@ if len(target_corr) > 0:
         print(f"  • {feat:40s}: {corr:+.3f}")
 print()
 print(f"📁 OUTPUTS GENERADOS:")
-print(f"  • {output_file_granular.name} - Dataset listo para modelización (H={PREDICTION_HORIZON})")
+print(f"  • {output_file_granular.name} - GRANULAR (producto-tienda, H={PREDICTION_HORIZON})")
+print(f"  • {output_file_aggregated.name} - AGREGADO (producto-base, H={PREDICTION_HORIZON})")
 print(f"  • {feature_list_file.name} - Lista de features por tipo")
 print(f"  • 02_correlation_matrix.png")
 print(f"  • 02_feature_distributions.png")
