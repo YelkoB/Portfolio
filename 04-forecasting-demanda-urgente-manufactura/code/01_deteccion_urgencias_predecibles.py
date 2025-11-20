@@ -562,7 +562,7 @@ def save_urgencies_dataset(df_all_input, df_metrics_input, suffix, id_column):
 
     print(f"✓ Urgencias {suffix} guardadas: {output_file}")
     print(f"  Registros: {len(df_output):,}")
-    print(f"  Productos: {df_output[id_column].nunique()}")
+    print(f"  Productos: {int(df_output[id_column].nunique())}")
     print(f"  Urgencias totales: {df_output['is_urgent'].sum():,}")
     print(f"  Tamaño: {output_file.stat().st_size / 1024:.2f} KB")
     print()
