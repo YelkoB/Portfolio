@@ -1,9 +1,9 @@
 """
-05. Valor Operativo - Cuantificación de ROI
+06. Valor Operativo - Cuantificación de ROI
 ============================================
 
-⚠️  IMPORTANTE: Ejecutar DESPUÉS del script 06_analisis_por_producto.py
-   Este script requiere products_filtered.csv generado por el script 06.
+⚠️  IMPORTANTE: Ejecutar DESPUÉS del script 05_analisis_por_producto.py
+   Este script requiere products_filtered.csv generado por el script 05.
 
 OBJETIVO:
 Cuantificar el valor de negocio del sistema de predicción de urgencias mediante:
@@ -12,7 +12,7 @@ Cuantificar el valor de negocio del sistema de predicción de urgencias mediante
 3. ROI del sistema de predicción
 4. Comparación: escenario CON vs SIN predicción
 
-NOTA: Solo se analizan productos confiables (filtrados en script 06) para
+NOTA: Solo se analizan productos confiables (filtrados en script 05) para
       garantizar estimaciones de ROI realistas.
 
 SUPUESTOS DE NEGOCIO:
@@ -22,14 +22,15 @@ SUPUESTOS DE NEGOCIO:
 - Nivel de servicio target: 95%
 
 INPUT:
-- data/simulated/products_filtered.csv (del script 06 - solo productos confiables)
-- data/simulated/test_predictions.csv
-- data/simulated/validation_metrics.csv
-- data/simulated/features_weekly.csv
+- data/simulated/products_filtered.csv (del script 05 - solo productos confiables)
+- data/simulated/test_predictions.csv (del script 04)
+- data/simulated/validation_metrics.csv (del script 04)
+- data/simulated/features_weekly.csv (del script 02)
 
 OUTPUT:
 - data/simulated/roi_analysis.csv
-- results/figures/05_*.png - Visualizaciones de ROI
+- data/simulated/cost_comparison.csv
+- results/figures/06_*.png - Visualizaciones de ROI
 """
 
 import sys
@@ -450,8 +451,8 @@ for bars in [bars1, bars2]:
                ha='center', va='bottom', fontsize=9)
 
 plt.tight_layout()
-plt.savefig(FIGURES / '05_cost_comparison.png', dpi=100, bbox_inches='tight')
-print(f"✓ Guardado: {FIGURES / '05_cost_comparison.png'}")
+plt.savefig(FIGURES / '06_cost_comparison.png', dpi=100, bbox_inches='tight')
+print(f"✓ Guardado: {FIGURES / '06_cost_comparison.png'}")
 plt.close()
 
 # B. ROI visualization
@@ -496,8 +497,8 @@ for year, benefit in zip(years, cumulative_benefit):
                 ha='center', va='bottom', fontsize=9)
 
 plt.tight_layout()
-plt.savefig(FIGURES / '05_roi_analysis.png', dpi=100, bbox_inches='tight')
-print(f"✓ Guardado: {FIGURES / '05_roi_analysis.png'}")
+plt.savefig(FIGURES / '06_roi_analysis.png', dpi=100, bbox_inches='tight')
+print(f"✓ Guardado: {FIGURES / '06_roi_analysis.png'}")
 plt.close()
 
 # C. Ahorros por producto
@@ -512,8 +513,8 @@ ax.tick_params(axis='x', rotation=45)
 ax.grid(True, alpha=0.3, axis='y')
 
 plt.tight_layout()
-plt.savefig(FIGURES / '05_savings_by_product.png', dpi=100, bbox_inches='tight')
-print(f"✓ Guardado: {FIGURES / '05_savings_by_product.png'}")
+plt.savefig(FIGURES / '06_savings_by_product.png', dpi=100, bbox_inches='tight')
+print(f"✓ Guardado: {FIGURES / '06_savings_by_product.png'}")
 plt.close()
 
 print()
@@ -550,9 +551,9 @@ print()
 print(f"📁 OUTPUTS GENERADOS:")
 print(f"  • {roi_file.name}")
 print(f"  • {comparison_file.name}")
-print(f"  • 05_cost_comparison.png")
-print(f"  • 05_roi_analysis.png")
-print(f"  • 05_savings_by_product.png")
+print(f"  • 06_cost_comparison.png")
+print(f"  • 06_roi_analysis.png")
+print(f"  • 06_savings_by_product.png")
 print()
 print("="*80)
 print("✓ ANÁLISIS DE VALOR OPERATIVO COMPLETADO")
