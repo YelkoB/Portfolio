@@ -12,8 +12,10 @@ INPUT (datos externos - NO incluidos en repo):
 - data/raw/sell_prices.csv (precios por tienda y fecha)
 
 OUTPUT:
-- data/processed/sales_weekly.csv (ventas agregadas semanalmente)
-- data/processed/sales_components.csv (componentes temporales)
+- data/processed/sales_weekly.csv (ventas GRANULARES: producto-tienda × semana)
+- data/processed/sales_weekly_aggregated.csv (ventas AGREGADAS: producto-base × semana)
+- data/processed/products_list.csv (lista de productos granulares)
+- data/processed/products_base_list.csv (lista de productos base)
 
 NOTA: Si no tienes el dataset M5, usa 00_generar_datos_sinteticos.py
 """
@@ -183,23 +185,28 @@ print()
 print("5. AGREGACIÓN SEMANAL POR PRODUCTO")
 print("-" * 80)
 
-# Crear product_id en sales_long
+# Crear product_id (granular: producto-tienda) y product_base (agregado: solo producto)
 sales_long['product_id'] = sales_long['item_id'] + '_' + sales_long['store_id']
+sales_long['product_base'] = sales_long['item_id']  # Producto sin tienda
 
 # Filtrar solo top productos
 sales_long_top = sales_long[sales_long['product_id'].isin(top_products)].copy()
 
 print(f"Datos filtrados: {len(sales_long_top):,} registros")
+print(f"  • Productos únicos (granular): {sales_long_top['product_id'].nunique()}")
+print(f"  • Productos base (agregado): {sales_long_top['product_base'].nunique()}")
+print(f"  • Promedio tiendas por producto base: {sales_long_top['product_id'].nunique() / sales_long_top['product_base'].nunique():.1f}")
+print()
 
-# Agregar por producto y semana
-sales_weekly = sales_long_top.groupby(['product_id', 'item_id', 'store_id', 'wm_yr_wk']).agg({
+# Agregar por producto-tienda y semana (GRANULAR)
+sales_weekly = sales_long_top.groupby(['product_id', 'item_id', 'store_id', 'product_base', 'wm_yr_wk']).agg({
     'date': 'min',
     'sales': 'sum',
     'revenue': 'sum',
     'sell_price': 'mean'
 }).reset_index()
 
-sales_weekly.columns = ['product_id', 'item_id', 'store_id', 'week_id',
+sales_weekly.columns = ['product_id', 'item_id', 'store_id', 'product_base', 'week_id',
                          'week_start', 'total_sales', 'total_revenue', 'avg_price']
 sales_weekly = sales_weekly.sort_values(['product_id', 'week_start']).reset_index(drop=True)
 
@@ -213,7 +220,7 @@ sales_weekly['week_of_month'] = (sales_weekly['week_start'].dt.day - 1) // 7 + 1
 # Agregar week_num por producto
 sales_weekly['week_num'] = sales_weekly.groupby('product_id').cumcount()
 
-print(f"✓ Agregación completada")
+print(f"✓ Agregación GRANULAR completada (producto-tienda)")
 print(f"  Total registros: {len(sales_weekly):,}")
 print(f"  Productos: {sales_weekly['product_id'].nunique()}")
 print(f"  Semanas por producto: ~{len(sales_weekly) / sales_weekly['product_id'].nunique():.0f}")
@@ -221,9 +228,44 @@ print(f"  Período: {sales_weekly['week_start'].min().date()} a {sales_weekly['w
 print()
 
 # ============================================================================
+# 5.1. AGREGACIÓN A NIVEL PRODUCTO BASE (CONSOLIDADO)
+# ============================================================================
+print("5.1. AGREGACIÓN A NIVEL PRODUCTO BASE (consolidado)")
+print("-" * 80)
+
+# Crear dataset agregado por product_base (suma de todas las tiendas)
+sales_weekly_agg = sales_long_top.groupby(['product_base', 'wm_yr_wk']).agg({
+    'date': 'min',
+    'sales': 'sum',
+    'revenue': 'sum',
+    'sell_price': 'mean'
+}).reset_index()
+
+sales_weekly_agg.columns = ['product_base', 'week_id',
+                             'week_start', 'total_sales', 'total_revenue', 'avg_price']
+sales_weekly_agg = sales_weekly_agg.sort_values(['product_base', 'week_start']).reset_index(drop=True)
+
+# Agregar información temporal
+sales_weekly_agg['year'] = sales_weekly_agg['week_start'].dt.year
+sales_weekly_agg['month'] = sales_weekly_agg['week_start'].dt.month
+sales_weekly_agg['quarter'] = sales_weekly_agg['week_start'].dt.quarter
+sales_weekly_agg['week_of_year'] = sales_weekly_agg['week_start'].dt.isocalendar().week
+sales_weekly_agg['week_of_month'] = (sales_weekly_agg['week_start'].dt.day - 1) // 7 + 1
+
+# Agregar week_num por producto
+sales_weekly_agg['week_num'] = sales_weekly_agg.groupby('product_base').cumcount()
+
+print(f"✓ Agregación CONSOLIDADA completada (producto base)")
+print(f"  Total registros: {len(sales_weekly_agg):,}")
+print(f"  Productos base: {sales_weekly_agg['product_base'].nunique()}")
+print(f"  Semanas por producto: ~{len(sales_weekly_agg) / sales_weekly_agg['product_base'].nunique():.0f}")
+print(f"  Factor de consolidación: {len(sales_weekly) / len(sales_weekly_agg):.2f}x (más datos por producto base)")
+print()
+
+# ============================================================================
 # 6. VALIDACIÓN
 # ============================================================================
-print("6. VALIDACIÓN DE DATOS")
+print("6. VALIDACIÓN DE DATOS (GRANULAR)")
 print("-" * 80)
 
 # Missing values
@@ -285,28 +327,53 @@ print()
 print("8. GUARDANDO DATOS")
 print("-" * 80)
 
-# Dataset principal (por producto)
-output_file = DATA_PROCESSED / 'sales_weekly.csv'
-sales_weekly.to_csv(output_file, index=False)
+# Dataset GRANULAR (producto-tienda)
+output_file_granular = DATA_PROCESSED / 'sales_weekly.csv'
+sales_weekly.to_csv(output_file_granular, index=False)
 
-print(f"✓ Datos guardados: {output_file}")
+print(f"✓ Datos GRANULARES guardados: {output_file_granular}")
 print(f"  Registros: {len(sales_weekly):,}")
-print(f"  Productos: {sales_weekly['product_id'].nunique()}")
-print(f"  Tamaño: {output_file.stat().st_size / 1024:.2f} KB")
+print(f"  Productos (producto-tienda): {sales_weekly['product_id'].nunique()}")
+print(f"  Tamaño: {output_file_granular.stat().st_size / 1024:.2f} KB")
+print()
 
-# Guardar lista de productos
+# Dataset AGREGADO (producto base)
+output_file_agg = DATA_PROCESSED / 'sales_weekly_aggregated.csv'
+sales_weekly_agg.to_csv(output_file_agg, index=False)
+
+print(f"✓ Datos AGREGADOS guardados: {output_file_agg}")
+print(f"  Registros: {len(sales_weekly_agg):,}")
+print(f"  Productos base: {sales_weekly_agg['product_base'].nunique()}")
+print(f"  Tamaño: {output_file_agg.stat().st_size / 1024:.2f} KB")
+print(f"  Factor de consolidación: {len(sales_weekly) / len(sales_weekly_agg):.2f}x")
+print()
+
+# Guardar lista de productos GRANULARES
 products_file = DATA_PROCESSED / 'products_list.csv'
 products_info = sales_weekly.groupby('product_id').agg({
     'item_id': 'first',
     'store_id': 'first',
+    'product_base': 'first',
     'total_sales': 'sum',
     'week_start': 'count'
 }).reset_index()
-products_info.columns = ['product_id', 'item_id', 'store_id', 'total_sales', 'n_weeks']
+products_info.columns = ['product_id', 'item_id', 'store_id', 'product_base', 'total_sales', 'n_weeks']
 products_info = products_info.sort_values('total_sales', ascending=False)
 products_info.to_csv(products_file, index=False)
 
-print(f"✓ Lista de productos: {products_file}")
+print(f"✓ Lista de productos granulares: {products_file}")
+
+# Guardar lista de productos BASE
+products_base_file = DATA_PROCESSED / 'products_base_list.csv'
+products_base_info = sales_weekly_agg.groupby('product_base').agg({
+    'total_sales': 'sum',
+    'week_start': 'count'
+}).reset_index()
+products_base_info.columns = ['product_base', 'total_sales', 'n_weeks']
+products_base_info = products_base_info.sort_values('total_sales', ascending=False)
+products_base_info.to_csv(products_base_file, index=False)
+
+print(f"✓ Lista de productos base: {products_base_file}")
 print()
 
 # ============================================================================
@@ -317,11 +384,19 @@ print("="*80)
 print("RESUMEN EJECUTIVO")
 print("="*80)
 print()
-print(f"📊 DATOS PROCESADOS:")
+print(f"📊 DATOS PROCESADOS - DOBLE GRANULARIDAD:")
 print(f"  • Dataset: M5 (Walmart Sales) - Kaggle")
-print(f"  • Productos analizados: {sales_weekly['product_id'].nunique()}")
-print(f"  • Total registros: {len(sales_weekly):,} (producto × semana)")
-print(f"  • Semanas por producto: ~{len(sales_weekly) / sales_weekly['product_id'].nunique():.0f}")
+print()
+print(f"  NIVEL GRANULAR (producto-tienda):")
+print(f"    • Productos únicos: {sales_weekly['product_id'].nunique()}")
+print(f"    • Total registros: {len(sales_weekly):,}")
+print(f"    • Semanas por producto: ~{len(sales_weekly) / sales_weekly['product_id'].nunique():.0f}")
+print()
+print(f"  NIVEL AGREGADO (producto-base):")
+print(f"    • Productos base: {sales_weekly_agg['product_base'].nunique()}")
+print(f"    • Total registros: {len(sales_weekly_agg):,}")
+print(f"    • Semanas por producto: ~{len(sales_weekly_agg) / sales_weekly_agg['product_base'].nunique():.0f}")
+print(f"    • Factor consolidación: {len(sales_weekly) / len(sales_weekly_agg):.2f}x más datos/producto")
 print(f"  • Período: {sales_weekly['week_start'].min().date()} a {sales_weekly['week_start'].max().date()}")
 print()
 print(f"📈 VENTAS:")
@@ -344,5 +419,11 @@ print("✓ SETUP COMPLETADO")
 print("="*80)
 print()
 print("PRÓXIMO PASO:")
-print("  → Ejecutar: python code/02_deteccion_urgencias_predecibles.py")
-print("  → Detectará urgencias POR PRODUCTO y rankeará por predictibilidad")
+print("  → Ejecutar: python code/01_generacion_urgencias.py")
+print("  → Generará urgencias para ambos niveles de granularidad")
+print("  → Probará modelos tanto en nivel producto-tienda como agregado")
+print()
+print("💡 ESTRATEGIA DUAL:")
+print("  • Granular (producto-tienda): Máxima precisión si hay datos suficientes")
+print("  • Agregado (producto-base): Más robusto cuando hay pocos datos por tienda")
+print("  • El sistema elegirá automáticamente el mejor nivel por producto")

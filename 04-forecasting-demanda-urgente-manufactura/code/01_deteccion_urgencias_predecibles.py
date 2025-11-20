@@ -63,21 +63,43 @@ print("="*80)
 print()
 
 # ============================================================================
-# 1. CARGA DE DATOS MULTI-PRODUCTO
+# 1. CARGA DE DATOS MULTI-PRODUCTO (DOBLE GRANULARIDAD)
 # ============================================================================
-print("1. CARGANDO DATOS MULTI-PRODUCTO")
+print("1. CARGANDO DATOS MULTI-PRODUCTO (DOBLE GRANULARIDAD)")
 print("-" * 80)
 
-df = pd.read_csv(DATA_PROCESSED / 'sales_weekly.csv')
-df['week_start'] = pd.to_datetime(df['week_start'])
+# Cargar datos GRANULARES (producto-tienda)
+df_granular = pd.read_csv(DATA_PROCESSED / 'sales_weekly.csv')
+df_granular['week_start'] = pd.to_datetime(df_granular['week_start'])
 
-print(f"✓ Datos cargados: {df.shape}")
-print(f"  Productos únicos: {df['product_id'].nunique()}")
-print(f"  Período: {df['week_start'].min()} a {df['week_start'].max()}")
-print(f"  Registros totales: {len(df):,}")
-print(f"  Semanas por producto: ~{len(df) / df['product_id'].nunique():.0f}")
+print(f"✓ Datos GRANULARES cargados: {df_granular.shape}")
+print(f"  Productos (producto-tienda): {df_granular['product_id'].nunique()}")
+print(f"  Período: {df_granular['week_start'].min()} a {df_granular['week_start'].max()}")
+print(f"  Registros totales: {len(df_granular):,}")
+print(f"  Semanas por producto: ~{len(df_granular) / df_granular['product_id'].nunique():.0f}")
 print()
-print("Primeras filas:")
+
+# Cargar datos AGREGADOS (producto-base)
+df_aggregated = pd.read_csv(DATA_PROCESSED / 'sales_weekly_aggregated.csv')
+df_aggregated['week_start'] = pd.to_datetime(df_aggregated['week_start'])
+
+print(f"✓ Datos AGREGADOS cargados: {df_aggregated.shape}")
+print(f"  Productos base: {df_aggregated['product_base'].nunique()}")
+print(f"  Período: {df_aggregated['week_start'].min()} a {df_aggregated['week_start'].max()}")
+print(f"  Registros totales: {len(df_aggregated):,}")
+print(f"  Semanas por producto: ~{len(df_aggregated) / df_aggregated['product_base'].nunique():.0f}")
+print(f"  Factor consolidación: {len(df_granular) / len(df_aggregated):.2f}x")
+print()
+
+print("💡 ESTRATEGIA DUAL:")
+print("  • Procesaremos AMBOS niveles en paralelo")
+print("  • Scripts posteriores elegirán el mejor nivel por producto")
+print()
+
+# Usar granular como df principal para compatibilidad con código existente
+df = df_granular.copy()
+
+print("Primeras filas (granular):")
 print(df.head(10))
 print()
 print("Estadísticas por producto:")
