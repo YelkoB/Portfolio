@@ -15,13 +15,14 @@ EVALUACIÓN:
 6. Predicciones para semanas futuras
 
 INPUT:
-- data/simulated/features_weekly.csv
-- data/simulated/best_models.csv
-- models/*.pkl
+- data/simulated/features_weekly_granular.csv (producto-tienda)
+- data/simulated/features_weekly_aggregated.csv (producto-base) [PENDIENTE]
+- data/simulated/best_models_granular.csv
+- models/granular/*.pkl
 
 OUTPUT:
-- data/simulated/test_predictions.csv - Predicciones en test set
-- data/simulated/validation_metrics.csv - Métricas finales
+- data/simulated/test_predictions_granular.csv - Predicciones en test set
+- data/simulated/validation_metrics_granular.csv - Métricas finales
 - results/figures/04_*.png - Visualizaciones de validación
 """
 
@@ -60,25 +61,31 @@ print("VALIDACIÓN - EVALUACIÓN EN TEST SET")
 print("="*80)
 print()
 
-MODELS_DIR = PROJECT_ROOT / 'models'
+# Crear directorios para modelos (granular y agregado)
+MODELS_DIR_GRANULAR = PROJECT_ROOT / 'models' / 'granular'
+MODELS_DIR_AGGREGATED = PROJECT_ROOT / 'models' / 'aggregated'
 
 # ============================================================================
 # 1. CARGA DE DATOS
 # ============================================================================
-print("1. CARGANDO DATOS Y MODELOS")
+print("1. CARGANDO DATOS Y MODELOS (GRANULAR)")
 print("-" * 80)
 
-df = pd.read_csv(DATA_SIMULATED / 'features_weekly.csv')
+df = pd.read_csv(DATA_SIMULATED / 'features_weekly_granular.csv')
 df['week_start'] = pd.to_datetime(df['week_start'])
 
-df_best = pd.read_csv(DATA_SIMULATED / 'best_models.csv')
+df_best = pd.read_csv(DATA_SIMULATED / 'best_models_granular.csv')
 
-print(f"✓ Dataset cargado: {df.shape}")
+print(f"✓ Dataset GRANULAR cargado: {df.shape}")
 print(f"  Productos: {df['product_id'].nunique()}")
 print()
-print(f"✓ Mejores modelos: {len(df_best)}")
+print(f"✓ Mejores modelos GRANULAR: {len(df_best)}")
 print(f"  Regresión: {(df_best['task'] == 'regression').sum()}")
 print(f"  Clasificación: {(df_best['task'] == 'classification').sum()}")
+print()
+
+print("💡 NOTA: Este script procesa nivel GRANULAR (producto-tienda)")
+print("   Nivel AGREGADO pendiente (requiere features_weekly_aggregated.csv)")
 print()
 
 # Cargar feature list
@@ -166,7 +173,7 @@ for product_id in tqdm(products, desc="Evaluando productos"):
     if len(best_reg_model) > 0:
         model_name = best_reg_model.iloc[0]['model']
         model_type = 'rf' if model_name == 'RandomForest' else 'xgb'
-        model_path = MODELS_DIR / f'{product_id}_{model_type}_reg.pkl'
+        model_path = MODELS_DIR_GRANULAR / f'{product_id}_{model_type}_reg.pkl'
 
         if model_path.exists():
             with open(model_path, 'rb') as f:
@@ -212,7 +219,7 @@ for product_id in tqdm(products, desc="Evaluando productos"):
     if len(best_clf_model) > 0:
         model_name = best_clf_model.iloc[0]['model']
         model_type = 'rf' if model_name == 'RandomForest' else 'xgb'
-        model_path = MODELS_DIR / f'{product_id}_{model_type}_clf.pkl'
+        model_path = MODELS_DIR_GRANULAR / f'{product_id}_{model_type}_clf.pkl'
 
         if model_path.exists() and y_test_clf_clean.sum() > 0:
             with open(model_path, 'rb') as f:
@@ -353,20 +360,20 @@ if len(df_clf_test) > 0:
     print()
 
 # ============================================================================
-# 5. GUARDAR RESULTADOS
+# 5. GUARDAR RESULTADOS (GRANULAR)
 # ============================================================================
-print("5. GUARDANDO RESULTADOS")
+print("4. GUARDANDO RESULTADOS (GRANULAR)")
 print("-" * 80)
 
-# Métricas
-metrics_file = DATA_SIMULATED / 'validation_metrics.csv'
+# Métricas (granular)
+metrics_file = DATA_SIMULATED / 'validation_metrics_granular.csv'
 df_test_results.to_csv(metrics_file, index=False)
-print(f"✓ Métricas guardadas: {metrics_file}")
+print(f"✓ Métricas GRANULAR guardadas: {metrics_file}")
 
-# Predicciones
-pred_file = DATA_SIMULATED / 'test_predictions.csv'
+# Predicciones (granular)
+pred_file = DATA_SIMULATED / 'test_predictions_granular.csv'
 df_predictions.to_csv(pred_file, index=False)
-print(f"✓ Predicciones guardadas: {pred_file}")
+print(f"✓ Predicciones GRANULAR guardadas: {pred_file}")
 print()
 
 # ============================================================================
@@ -469,7 +476,7 @@ if len(df_reg_test) > 0:
     best_product_reg = df_reg_test.loc[df_reg_test['rmse'].idxmin(), 'product_id']
     best_model_name = df_reg_test.loc[df_reg_test['rmse'].idxmin(), 'model']
     model_type = 'rf' if best_model_name == 'RandomForest' else 'xgb'
-    model_path = MODELS_DIR / f'{best_product_reg}_{model_type}_reg.pkl'
+    model_path = MODELS_DIR_GRANULAR / f'{best_product_reg}_{model_type}_reg.pkl'
 
     if model_path.exists():
         with open(model_path, 'rb') as f:
