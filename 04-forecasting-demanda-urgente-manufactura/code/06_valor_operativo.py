@@ -4,21 +4,33 @@
 
 OBJETIVO:
 Calcular el valor de negocio REAL del sistema de dual granularidad mediante:
-1. Modelo de costos y revenue realista
+1. Modelo de costos realista
 2. Comparación: SIN predicción vs CON predicción (nivel óptimo)
 3. Cálculo de ROI considerando costos del sistema
 
-MODELO DE NEGOCIO:
-- Contratos con clientes: Entrega estándar incluida en precio base
-- Urgencias NO anticipadas: Se cobra FEE adicional al cliente ($3-5/unidad)
-- Urgencias anticipadas (CON ML): NO se cobra fee → Mejor servicio
-- Costos internos: pedidos urgentes, holding, backorders
+MODELO DE NEGOCIO SIMPLIFICADO:
+================================================
+⚠️ SUPUESTOS (para simplificar análisis):
+- Todos los productos tienen el mismo costo unitario de producción
+- Costos son estimaciones conservadoras basadas en industria manufacturera
+- Fee de urgencia refleja costo adicional de operación express
 
-SUPUESTOS:
-- Costo pedido urgente: 1.5x normal ($1.50 vs $1.00)
-- Fee urgencia al cliente: $3.00/unidad
-- Costo backorder: $2.00/unidad (venta perdida)
-- Costo holding: $0.10/unidad/semana
+ESCENARIO SIN ML (Baseline):
+- Urgencias NO anticipadas → Producción urgente ($1.50/unidad)
+- Posibles faltantes de stock → Backorders ($2.00/unidad)
+- Safety stock normal
+
+ESCENARIO CON ML (Predicción):
+- Urgencias ANTICIPADAS → Producción planificada normal ($1.00/unidad)
+- Mejor gestión de stock → Menos backorders
+- Incremento moderado en holding por anticipación
+- BENEFICIO: Ahorro en costos urgentes + mejor servicio al cliente
+
+PARÁMETROS DE COSTOS:
+- Pedido normal: $1.00/unidad
+- Pedido urgente: $1.50/unidad (1.5x normal)
+- Backorder: $2.00/unidad (oportunidad perdida + daño reputacional)
+- Holding: $0.10/unidad/semana (almacenamiento)
 
 INPUT:
 - data/simulated/product_level_selection.csv
@@ -64,32 +76,33 @@ print()
 print("1. PARÁMETROS DE NEGOCIO")
 print("-" * 80)
 
-# Costos
+# Costos operativos (SUPUESTO: Todos los productos valen lo mismo)
 COST_NORMAL_ORDER = 1.0          # Pedido normal al proveedor
-COST_URGENT_MULTIPLIER = 1.5     # Pedido urgente cuesta 1.5x
-COST_HOLDING_PER_UNIT = 0.10     # Costo por exceso de stock/semana
-COST_BACKORDER_PER_UNIT = 2.0    # Venta perdida
-
-# Revenue
-REVENUE_URGENT_FEE = 3.0         # Fee cobrado al cliente por urgencia
+COST_URGENT_MULTIPLIER = 1.5     # Pedido urgente cuesta 1.5x (operación express)
+COST_HOLDING_PER_UNIT = 0.10     # Costo por almacenamiento/semana
+COST_BACKORDER_PER_UNIT = 2.0    # Oportunidad perdida + daño reputacional
 
 # Safety stock
-SAFETY_STOCK_Z = 1.65            # 95% service level
+SAFETY_STOCK_Z = 1.65            # 95% service level (z-score)
 
 # Costos del sistema ML
-COST_SYSTEM_IMPLEMENTATION = 50000
-COST_SYSTEM_MONTHLY = 1000
+COST_SYSTEM_IMPLEMENTATION = 50000  # Implementación inicial
+COST_SYSTEM_MONTHLY = 1000          # Mantenimiento mensual
 
-print(f"💰 MODELO DE NEGOCIO:")
+print(f"💰 MODELO DE COSTOS (supuesto: costos homogéneos):")
 print(f"  • Pedido normal: ${COST_NORMAL_ORDER:.2f}/unidad")
-print(f"  • Pedido urgente: ${COST_NORMAL_ORDER * COST_URGENT_MULTIPLIER:.2f}/unidad")
-print(f"  • Fee urgencia (al cliente): ${REVENUE_URGENT_FEE:.2f}/unidad")
-print(f"  • Costo backorder: ${COST_BACKORDER_PER_UNIT:.2f}/unidad")
-print(f"  • Costo holding: ${COST_HOLDING_PER_UNIT:.2f}/unidad/semana")
+print(f"  • Pedido urgente: ${COST_NORMAL_ORDER * COST_URGENT_MULTIPLIER:.2f}/unidad (1.5x normal)")
+print(f"  • Backorder: ${COST_BACKORDER_PER_UNIT:.2f}/unidad (oportunidad perdida)")
+print(f"  • Holding: ${COST_HOLDING_PER_UNIT:.2f}/unidad/semana (almacenamiento)")
 print()
 print(f"🖥️  COSTOS SISTEMA ML:")
-print(f"  • Implementación: ${COST_SYSTEM_IMPLEMENTATION:,.0f}")
+print(f"  • Implementación inicial: ${COST_SYSTEM_IMPLEMENTATION:,.0f}")
 print(f"  • Mantenimiento anual: ${COST_SYSTEM_MONTHLY * 12:,.0f}")
+print()
+print(f"📊 LÓGICA DE AHORRO:")
+print(f"  • SIN ML: Urgencias NO anticipadas → Pedido urgente + Posibles backorders")
+print(f"  • CON ML: Urgencias ANTICIPADAS → Pedido normal + Menos backorders")
+print(f"  • Ahorro por urgencia anticipada: ${(COST_NORMAL_ORDER * COST_URGENT_MULTIPLIER) - COST_NORMAL_ORDER:.2f}/unidad")
 print()
 
 # ============================================================================
@@ -148,8 +161,9 @@ print()
 def calculate_baseline_costs(row):
     """
     Costos SIN sistema de predicción.
-    - Urgencias NO anticipadas → pedido urgente + cobro fee al cliente
+    - Urgencias NO anticipadas → pedido urgente (más caro)
     - Safety stock estándar
+    - Posibles backorders por falta de stock
     """
     sales = row['actual']
     is_urgent = row['is_urgent_actual']
@@ -160,9 +174,8 @@ def calculate_baseline_costs(row):
     cost_holding = safety_stock * COST_HOLDING_PER_UNIT
 
     if is_urgent == 1:
-        # Urgencia NO anticipada
+        # Urgencia NO anticipada → pedido urgente (1.5x normal)
         cost_ordering = sales * COST_NORMAL_ORDER * COST_URGENT_MULTIPLIER
-        revenue_urgent = sales * REVENUE_URGENT_FEE  # Cobramos al cliente
 
         # Si no hay suficiente safety stock → backorder
         if sales > safety_stock:
@@ -172,16 +185,14 @@ def calculate_baseline_costs(row):
     else:
         # Pedido normal
         cost_ordering = sales * COST_NORMAL_ORDER
-        revenue_urgent = 0
         cost_backorder = 0
 
-    total_cost = cost_holding + cost_ordering + cost_backorder - revenue_urgent
+    total_cost = cost_holding + cost_ordering + cost_backorder
 
     return pd.Series({
         'baseline_cost_holding': cost_holding,
         'baseline_cost_ordering': cost_ordering,
         'baseline_cost_backorder': cost_backorder,
-        'baseline_revenue_urgent': revenue_urgent,
         'baseline_total_cost': total_cost
     })
 
@@ -189,8 +200,9 @@ def calculate_baseline_costs(row):
 def calculate_predicted_costs(row):
     """
     Costos CON sistema de predicción.
-    - Urgencias ANTICIPADAS → pedido normal planificado + NO se cobra fee
-    - Mejor satisfacción del cliente
+    - Urgencias ANTICIPADAS → pedido normal planificado (más barato)
+    - Mejor gestión de stock → menos backorders
+    - Trade-off: Más holding si anticipamos, pero ahorramos en urgentes
     """
     sales = row['actual']
     is_urgent_actual = row['is_urgent_actual']
@@ -200,20 +212,19 @@ def calculate_predicted_costs(row):
     cost_holding = 0
     cost_ordering = 0
     cost_backorder = 0
-    revenue_urgent = 0  # NO cobramos fee (mejor servicio)
 
     if is_urgent_pred == 1:
         # PREDICCIÓN: Anticipamos urgencia
-        # Preparamos stock extra
+        # Preparamos stock extra (mayor holding)
         safety_stock_increased = SAFETY_STOCK_Z * std_sales * 1.3
         cost_holding = safety_stock_increased * COST_HOLDING_PER_UNIT
-        cost_ordering = sales * COST_NORMAL_ORDER  # Pedido NORMAL
+        cost_ordering = sales * COST_NORMAL_ORDER  # Pedido NORMAL (ahorro!)
 
         if is_urgent_actual == 1:
-            # True Positive: Acertamos
+            # True Positive: Acertamos → sin backorders
             cost_backorder = 0
         else:
-            # False Positive: Exceso de stock
+            # False Positive: Exceso de stock (penalización en holding)
             excess = sales * 0.2
             cost_holding += excess * COST_HOLDING_PER_UNIT * 2
     else:
@@ -223,18 +234,16 @@ def calculate_predicted_costs(row):
         cost_ordering = sales * COST_NORMAL_ORDER
 
         if is_urgent_actual == 1:
-            # False Negative: Fallamos
-            # Tenemos que hacer pedido urgente
+            # False Negative: Fallamos → pedido urgente necesario
             cost_ordering = sales * COST_NORMAL_ORDER * COST_URGENT_MULTIPLIER
             cost_backorder = max(0, sales - safety_stock) * COST_BACKORDER_PER_UNIT
 
-    total_cost = cost_holding + cost_ordering + cost_backorder - revenue_urgent
+    total_cost = cost_holding + cost_ordering + cost_backorder
 
     return pd.Series({
         'predicted_cost_holding': cost_holding,
         'predicted_cost_ordering': cost_ordering,
         'predicted_cost_backorder': cost_backorder,
-        'predicted_revenue_urgent': revenue_urgent,
         'predicted_total_cost': total_cost
     })
 
@@ -290,9 +299,9 @@ for _, selection_row in df_selection.iterrows():
                 merged['product_base'] = product_base
                 merged['product_id'] = product_id
                 merged['level'] = 'granular'
-                merged['is_urgent_actual'] = merged['actual_clf']
-                merged['is_urgent_pred'] = merged['predicted_clf']
-                merged['actual'] = merged['total_sales']
+                merged['is_urgent_actual'] = merged['actual']  # 'actual' viene solo de clf, no tiene sufijo
+                merged['is_urgent_pred'] = merged['predicted_clf']  # 'predicted' tiene conflicto → _clf
+                merged['actual'] = merged['total_sales']  # Reasignar con ventas reales
 
                 analysis_data.append(merged)
 
@@ -326,9 +335,9 @@ for _, selection_row in df_selection.iterrows():
             merged['product_base'] = product_base
             merged['product_id'] = product_base  # Mismo ID
             merged['level'] = 'aggregated'
-            merged['is_urgent_actual'] = merged['actual_clf']
-            merged['is_urgent_pred'] = merged['predicted_clf']
-            merged['actual'] = merged['total_sales']
+            merged['is_urgent_actual'] = merged['actual']  # 'actual' viene solo de clf, no tiene sufijo
+            merged['is_urgent_pred'] = merged['predicted_clf']  # 'predicted' tiene conflicto → _clf
+            merged['actual'] = merged['total_sales']  # Reasignar con ventas reales
 
             analysis_data.append(merged)
 
@@ -370,7 +379,6 @@ baseline_summary = {
     'total_holding': df_analysis['baseline_cost_holding'].sum(),
     'total_ordering': df_analysis['baseline_cost_ordering'].sum(),
     'total_backorder': df_analysis['baseline_cost_backorder'].sum(),
-    'total_revenue': df_analysis['baseline_revenue_urgent'].sum(),
     'total_cost': df_analysis['baseline_total_cost'].sum()
 }
 
@@ -379,29 +387,21 @@ predicted_summary = {
     'total_holding': df_analysis['predicted_cost_holding'].sum(),
     'total_ordering': df_analysis['predicted_cost_ordering'].sum(),
     'total_backorder': df_analysis['predicted_cost_backorder'].sum(),
-    'total_revenue': df_analysis['predicted_revenue_urgent'].sum(),
     'total_cost': df_analysis['predicted_total_cost'].sum()
 }
 
 print(f"📊 ESCENARIO SIN PREDICCIÓN (Baseline):")
-print(f"  Costos:")
-print(f"    • Holding:   ${baseline_summary['total_holding']:,.2f}")
-print(f"    • Ordering:  ${baseline_summary['total_ordering']:,.2f}")
-print(f"    • Backorder: ${baseline_summary['total_backorder']:,.2f}")
-print(f"  Revenue:")
-print(f"    • Fees urgencia: ${baseline_summary['total_revenue']:,.2f}")
-print(f"  Costo NETO: ${baseline_summary['total_cost']:,.2f}")
+print(f"  • Holding:   ${baseline_summary['total_holding']:,.2f}")
+print(f"  • Ordering:  ${baseline_summary['total_ordering']:,.2f}")
+print(f"  • Backorder: ${baseline_summary['total_backorder']:,.2f}")
+print(f"  Costo TOTAL: ${baseline_summary['total_cost']:,.2f}")
 print()
 
 print(f"📊 ESCENARIO CON PREDICCIÓN (Dual Granularity):")
-print(f"  Costos:")
-print(f"    • Holding:   ${predicted_summary['total_holding']:,.2f}")
-print(f"    • Ordering:  ${predicted_summary['total_ordering']:,.2f}")
-print(f"    • Backorder: ${predicted_summary['total_backorder']:,.2f}")
-print(f"  Revenue:")
-print(f"    • Fees urgencia: ${predicted_summary['total_revenue']:,.2f}")
-print(f"    (Debería ser ~$0 - no cobramos fees)")
-print(f"  Costo NETO: ${predicted_summary['total_cost']:,.2f}")
+print(f"  • Holding:   ${predicted_summary['total_holding']:,.2f}")
+print(f"  • Ordering:  ${predicted_summary['total_ordering']:,.2f}")
+print(f"  • Backorder: ${predicted_summary['total_backorder']:,.2f}")
+print(f"  Costo TOTAL: ${predicted_summary['total_cost']:,.2f}")
 print()
 
 # Ahorros
@@ -440,9 +440,11 @@ roi_summary = pd.DataFrame([{
     'products_base': df_analysis['product_base'].nunique(),
     'products_total': df_analysis['product_id'].nunique(),
     'baseline_cost_total': baseline_summary['total_cost'],
-    'baseline_revenue_urgent': baseline_summary['total_revenue'],
+    'baseline_cost_ordering': baseline_summary['total_ordering'],
+    'baseline_cost_backorder': baseline_summary['total_backorder'],
     'predicted_cost_total': predicted_summary['total_cost'],
-    'predicted_revenue_urgent': predicted_summary['total_revenue'],
+    'predicted_cost_ordering': predicted_summary['total_ordering'],
+    'predicted_cost_backorder': predicted_summary['total_backorder'],
     'savings_period': total_savings_period,
     'savings_annual': annual_savings,
     'system_cost_year1': annual_system_cost,
