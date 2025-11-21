@@ -1,43 +1,29 @@
 """
-06. Valor Operativo - Cuantificación de ROI
-============================================
-
-⚠️  IMPORTANTE: Ejecutar DESPUÉS del script 05_analisis_por_producto.py
-   Este script requiere products_filtered.csv y products_tier1_deployment.csv.
+06. Valor Operativo - Sistema de Dual Granularidad
+====================================================
 
 OBJETIVO:
-Cuantificar el valor de negocio del sistema de predicción de urgencias mediante:
-1. Cálculo de costos evitados (urgencias vs planificación normal)
-2. Revenue de cobros por entregas urgentes al cliente
-3. ROI del sistema de predicción
-4. Comparación: escenario CON vs SIN predicción
-5. Análisis escalonado: FASE 1 (Tier 1) vs FASE 2 (Tier 1+2)
+Demostrar el valor de negocio del sistema de dual granularidad mediante:
+1. Comparación de métricas entre granular y agregado
+2. Beneficios de usar el nivel óptimo por producto
+3. Visualización de la mejora obtenida
 
 MODELO DE NEGOCIO:
-- Contratos con clientes: Entrega estándar incluida en precio base
-- Urgencias: Se cobra FEE adicional al cliente ($3-5 por unidad)
-- Predicción permite: Anticipar y evitar backorders SIN cobrar fee
-- Valor: Satisfacción del cliente + ahorro en costos internos
-
-SUPUESTOS DE NEGOCIO:
-- Costo pedido urgente interno: 1.5x costo normal ($0.50 extra al proveedor)
-- Costo de stock excess: $0.10 por unidad/semana
-- Costo de backorder: $2.00 por unidad (venta perdida)
-- Revenue por entrega urgente al cliente: $3.00 por unidad
-- Nivel de servicio target: 95%
+- Sistema de dual granularidad permite elegir el mejor nivel por producto
+- Mejores predicciones → Mejor F1 y RMSE
+- Impacto en negocio:
+  * Mejor clasificación (F1) → Menos backorders, mejor servicio
+  * Mejor regresión (RMSE) → Pronósticos más precisos de inventario
 
 INPUT:
-- data/simulated/products_tier1_deployment.csv (del script 05 - Tier 1 solo)
-- data/simulated/products_filtered.csv (del script 05 - Tier 1+2)
-- data/simulated/test_predictions.csv (del script 04)
-- data/simulated/validation_metrics.csv (del script 04)
-- data/simulated/features_weekly.csv (del script 02)
+- data/simulated/validation_metrics_granular.csv
+- data/simulated/validation_metrics_aggregated.csv
+- data/simulated/product_level_selection.csv
+- data/simulated/level_comparison_by_product.csv
 
 OUTPUT:
-- data/simulated/roi_analysis_tier1.csv (solo Tier 1)
-- data/simulated/roi_analysis_tier1_2.csv (Tier 1+2)
-- data/simulated/cost_comparison.csv
-- results/figures/06_*.png - Visualizaciones de ROI
+- data/simulated/dual_granularity_value.csv
+- results/figures/06_*.png - Visualizaciones
 """
 
 import sys
@@ -63,758 +49,375 @@ plt.style.use('seaborn-v0_8-darkgrid')
 sns.set_palette('viridis')
 
 print("="*80)
-print("VALOR OPERATIVO - CUANTIFICACIÓN DE ROI")
+print("VALOR OPERATIVO - SISTEMA DE DUAL GRANULARIDAD")
 print("="*80)
 print()
 
 # ============================================================================
-# 1. PARÁMETROS DE NEGOCIO
+# 1. CARGAR DATOS
 # ============================================================================
-print("1. PARÁMETROS DE NEGOCIO")
+print("1. CARGANDO DATOS")
 print("-" * 80)
 
-# Costos internos de la empresa
-COST_URGENT_MULTIPLIER = 1.5  # Pedido urgente al proveedor cuesta 1.5x normal
-COST_HOLDING_PER_UNIT = 0.10  # Costo por unidad de exceso de stock/semana
-COST_BACKORDER_PER_UNIT = 2.0  # Costo por unidad de backorder (venta perdida)
-COST_NORMAL_ORDER = 1.0  # Costo base por unidad en pedido normal
+# Cargar selección de nivel óptimo
+df_selection = pd.read_csv(DATA_SIMULATED / 'product_level_selection.csv')
+df_comparison = pd.read_csv(DATA_SIMULATED / 'level_comparison_by_product.csv', index_col=0)
 
-# Revenue por entregas urgentes al cliente (fee contractual)
-REVENUE_URGENT_DELIVERY = 3.0  # Fee que cobra la empresa al cliente por entrega urgente
-
-# Niveles de servicio
-SERVICE_LEVEL_TARGET = 0.95  # 95% de nivel de servicio objetivo
-SAFETY_STOCK_Z = 1.65  # Z-score para 95% service level
-
-# Costos de implementación del sistema ML
-COST_SYSTEM_IMPLEMENTATION = 50000  # Costo inicial del sistema ML
-COST_SYSTEM_MONTHLY = 1000  # Costo mensual de mantenimiento
-
-print(f"💰 MODELO DE NEGOCIO:")
-print(f"  • Contrato estándar: Entrega normal incluida en precio base")
-print(f"  • Urgencia NO anticipada: Se cobra ${REVENUE_URGENT_DELIVERY:.2f}/unidad extra al cliente")
-print(f"  • Urgencia anticipada (con ML): NO se cobra al cliente (mejor servicio)")
-print()
-print(f"📦 COSTOS INTERNOS:")
-print(f"  • Pedido normal al proveedor: ${COST_NORMAL_ORDER:.2f}/unidad")
-print(f"  • Pedido urgente al proveedor: ${COST_NORMAL_ORDER * COST_URGENT_MULTIPLIER:.2f}/unidad ({COST_URGENT_MULTIPLIER}x)")
-print(f"  • Holding cost: ${COST_HOLDING_PER_UNIT:.2f}/unidad/semana")
-print(f"  • Backorder cost: ${COST_BACKORDER_PER_UNIT:.2f}/unidad (venta perdida)")
-print()
-print(f"💵 REVENUE:")
-print(f"  • Fee por entrega urgente al cliente: ${REVENUE_URGENT_DELIVERY:.2f}/unidad")
-print(f"  • Ventaja del ML: Evitar cobrar fee → Mayor satisfacción del cliente")
-print()
-print(f"🎯 NIVEL DE SERVICIO:")
-print(f"  • Target: {SERVICE_LEVEL_TARGET*100:.0f}%")
-print(f"  • Safety stock Z-score: {SAFETY_STOCK_Z}")
-print()
-print(f"🖥️  COSTOS DEL SISTEMA ML:")
-print(f"  • Implementación (una vez): ${COST_SYSTEM_IMPLEMENTATION:,.0f}")
-print(f"  • Mantenimiento mensual: ${COST_SYSTEM_MONTHLY:,.0f}")
-print(f"  • Mantenimiento anual: ${COST_SYSTEM_MONTHLY * 12:,.0f}")
+print(f"✅ Selección de nivel: {len(df_selection)} productos")
+print(f"✅ Comparación detallada: {len(df_comparison)} productos")
 print()
 
 # ============================================================================
-# 2. CARGA DE DATOS
+# 2. CÁLCULO DE MEJORA POR USAR NIVEL ÓPTIMO
 # ============================================================================
-print("2. CARGANDO DATOS")
+print("2. MEJORA POR USAR NIVEL ÓPTIMO vs USAR SIEMPRE EL MISMO NIVEL")
 print("-" * 80)
 
-# Cargar ambos tiers para análisis escalonado
-df_products_tier1 = pd.read_csv(DATA_SIMULATED / 'products_tier1_deployment.csv')
-df_products_tier1_2 = pd.read_csv(DATA_SIMULATED / 'products_filtered.csv')
+# Escenario 1: Usar SIEMPRE GRANULAR (baseline)
+always_granular_f1 = df_comparison['f1_granular'].mean()
+always_granular_rmse = df_comparison['rmse_granular'].mean()
 
-tier1_products = df_products_tier1['product_id'].unique()
-tier1_2_products = df_products_tier1_2['product_id'].unique()
+# Escenario 2: Usar SIEMPRE AGREGADO
+always_aggregated_f1 = df_comparison['f1_aggregated'].mean()
+always_aggregated_rmse = df_comparison['rmse_aggregated'].mean()
 
-print(f"📊 ANÁLISIS ESCALONADO:")
-print(f"  • Tier 1 (Deployment inmediato): {len(tier1_products)} productos")
-print(f"  • Tier 1+2 (Tras 6 meses monitoring): {len(tier1_2_products)} productos")
-print(f"  • Diferencia: {len(tier1_2_products) - len(tier1_products)} productos adicionales en Tier 2")
-print()
+# Escenario 3: Usar NIVEL ÓPTIMO (dual granularity)
+# Para cada producto, usar la métrica del nivel óptimo
+optimal_f1_list = []
+optimal_rmse_list = []
 
-# Cargar datos de predicciones, métricas y features
-df_pred = pd.read_csv(DATA_SIMULATED / 'test_predictions.csv')
-df_pred['week_start'] = pd.to_datetime(df_pred['week_start'])
+for product_base in df_comparison.index:
+    selection_row = df_selection[df_selection['product_base'] == product_base]
 
-df_metrics = pd.read_csv(DATA_SIMULATED / 'validation_metrics.csv')
+    if len(selection_row) == 0:
+        continue
 
-df_features = pd.read_csv(DATA_SIMULATED / 'features_weekly.csv')
-df_features['week_start'] = pd.to_datetime(df_features['week_start'])
+    best_level = selection_row.iloc[0]['best_overall']
 
-print(f"✓ Predicciones cargadas: {len(df_pred):,}")
-print(f"✓ Métricas cargadas: {len(df_metrics)}")
-print(f"✓ Features cargados: {len(df_features):,}")
-print()
-
-# ============================================================================
-# 3. FUNCIONES AUXILIARES PARA CÁLCULO DE COSTOS
-# ============================================================================
-
-def calculate_baseline_costs(row):
-    """
-    Calcula costos/revenue SIN sistema de predicción.
-
-    Estrategia:
-    - Safety stock = Z * std_12 (estándar)
-    - Urgencias NO anticipadas → pedido urgente al proveedor + cobra fee al cliente
-    - Si no hay stock → backorder (venta perdida)
-
-    MODELO DE NEGOCIO:
-    - Urgencia: Cobra $3/unidad al cliente pero cuesta $1.50/unidad al proveedor
-    - Backorders: Venta perdida ($2/unidad) + mala experiencia del cliente
-    - Revenue urgente PARCIALMENTE compensa costos extra
-    """
-    actual_sales = row['total_sales']
-    is_urgent = row['is_urgent']
-    std_12 = row.get('sales_rolling_std_12', actual_sales * 0.2)  # Default 20% si no hay
-
-    # Safety stock estándar
-    safety_stock = SAFETY_STOCK_Z * std_12
-
-    # Costos
-    cost_holding = safety_stock * COST_HOLDING_PER_UNIT
-    cost_ordering = 0
-    cost_backorder = 0
-    revenue_urgent = 0  # Revenue de cobrar al cliente
-
-    if is_urgent == 1:
-        # Urgencia NO anticipada
-        cost_ordering = actual_sales * COST_NORMAL_ORDER * COST_URGENT_MULTIPLIER  # $1.50/unidad al proveedor
-        revenue_urgent = actual_sales * REVENUE_URGENT_DELIVERY  # +$3.00/unidad del cliente
-
-        # Si no teníamos suficiente safety stock → backorder
-        if actual_sales > safety_stock:
-            cost_backorder = (actual_sales - safety_stock) * COST_BACKORDER_PER_UNIT
+    if best_level == 'granular':
+        optimal_f1_list.append(df_comparison.loc[product_base, 'f1_granular'])
+        optimal_rmse_list.append(df_comparison.loc[product_base, 'rmse_granular'])
     else:
-        # Pedido normal
-        cost_ordering = actual_sales * COST_NORMAL_ORDER
+        optimal_f1_list.append(df_comparison.loc[product_base, 'f1_aggregated'])
+        optimal_rmse_list.append(df_comparison.loc[product_base, 'rmse_aggregated'])
 
-    # Costo NETO = Costos - Revenue
-    total_cost = cost_holding + cost_ordering + cost_backorder - revenue_urgent
+optimal_f1 = np.mean(optimal_f1_list)
+optimal_rmse = np.mean(optimal_rmse_list)
 
-    return pd.Series({
-        'baseline_cost_holding': cost_holding,
-        'baseline_cost_ordering': cost_ordering,
-        'baseline_cost_backorder': cost_backorder,
-        'baseline_revenue_urgent': revenue_urgent,
-        'baseline_total_cost': total_cost
-    })
-
-
-def calculate_predicted_costs(row):
-    """
-    Calcula costos CON sistema de predicción.
-
-    VENTAJA DEL ML:
-    - Urgencias ANTICIPADAS → NO se cobra fee al cliente (mejor servicio)
-    - Pedido normal planificado → costo estándar $1.00/unidad
-    - Menos backorders → menos ventas perdidas
-    - Mayor satisfacción del cliente → retención a largo plazo
-
-    Estrategia:
-    - Si predecimos urgencia → pedido normal anticipado + stock extra
-    - Si NO predecimos urgencia → pedido normal estándar
-    - Safety stock ajustado según predicción
-    """
-    actual_sales = row['total_sales']
-    predicted_sales = row.get('predicted_sales', actual_sales)
-    is_urgent_actual = row['is_urgent']
-    is_urgent_pred = row.get('predicted_urgency', 0)
-    std_12 = row.get('sales_rolling_std_12', actual_sales * 0.2)
-
-    # Costos base
-    cost_holding = 0
-    cost_ordering = 0
-    cost_backorder = 0
-    revenue_urgent = 0  # NO cobramos al cliente (mejor servicio)
-
-    # Decidir estrategia según predicción
-    if is_urgent_pred == 1:
-        # PREDICCIÓN: Urgencia anticipada
-        # Preparamos stock extra para cumplir sin cobrar fee al cliente
-        safety_stock_increased = SAFETY_STOCK_Z * std_12 * 1.3  # 30% más stock
-        cost_holding = safety_stock_increased * COST_HOLDING_PER_UNIT
-        cost_ordering = actual_sales * COST_NORMAL_ORDER  # Pedido NORMAL (no urgente)
-
-        # Verificar accuracy de predicción
-        if is_urgent_actual == 1:
-            # True Positive: predecimos bien
-            # Tenemos stock preparado → sin backorders
-            cost_backorder = 0
-        else:
-            # False Positive: predecimos urgencia pero no la hubo
-            # Exceso de stock → costo holding adicional
-            excess_stock = predicted_sales * 0.2  # Estimamos 20% de exceso
-            cost_holding += excess_stock * COST_HOLDING_PER_UNIT * 2
-    else:
-        # PREDICCIÓN: NO urgencia (pedido normal estándar)
-        safety_stock = SAFETY_STOCK_Z * std_12
-        cost_holding = safety_stock * COST_HOLDING_PER_UNIT
-        cost_ordering = actual_sales * COST_NORMAL_ORDER
-
-        if is_urgent_actual == 1:
-            # False Negative: NO anticipamos urgencia pero la hubo
-            # Tenemos que hacer pedido urgente → costo alto
-            cost_ordering = actual_sales * COST_NORMAL_ORDER * COST_URGENT_MULTIPLIER
-            # Como NO anticipamos, NO cobramos al cliente (no teníamos contrato)
-            revenue_urgent = 0  # Sin revenue (no anticipamos)
-            # Backorder si no hay suficiente safety stock
-            cost_backorder = max(0, actual_sales - safety_stock) * COST_BACKORDER_PER_UNIT
-
-    # Costo NETO = Costos - Revenue
-    total_cost = cost_holding + cost_ordering + cost_backorder - revenue_urgent
-
-    return pd.Series({
-        'predicted_cost_holding': cost_holding,
-        'predicted_cost_ordering': cost_ordering,
-        'predicted_cost_backorder': cost_backorder,
-        'predicted_revenue_urgent': revenue_urgent,
-        'predicted_total_cost': total_cost
-    })
-
-
-# ============================================================================
-# 4. FUNCIÓN PARA CALCULAR ROI POR TIER
-# ============================================================================
-
-def calculate_roi_for_products(product_list, tier_name):
-    """
-    Calcula ROI completo para un conjunto de productos (tier).
-
-    Returns:
-        dict con baseline_summary, predicted_summary, roi_metrics, df_comparison
-    """
-    print()
-    print("="*80)
-    print(f"ANÁLISIS ROI - {tier_name}")
-    print("="*80)
-    print()
-
-    # Filtrar datos por productos del tier
-    df_pred_tier = df_pred[df_pred['product_id'].isin(product_list)].copy()
-    df_features_tier = df_features[df_features['product_id'].isin(product_list)].copy()
-
-    df_pred_reg = df_pred_tier[df_pred_tier['task'] == 'regression'].copy()
-    df_pred_clf = df_pred_tier[df_pred_tier['task'] == 'classification'].copy()
-
-    print(f"📊 Productos analizados: {len(product_list)}")
-    print(f"  • Predicciones: {len(df_pred_tier):,}")
-    print(f"  • Semanas únicas: {df_features_tier['week_start'].nunique()}")
-    print()
-
-    # ========================================================================
-    # 4.1. BASELINE (SIN PREDICCIÓN)
-    # ========================================================================
-    print("4.1. ESCENARIO BASELINE (SIN PREDICCIÓN)")
-    print("-" * 80)
-
-    # Mergear predicciones con features para tener información completa
-    df_analysis = df_features_tier.merge(
-        df_pred_reg[['product_id', 'week_start', 'predicted']],
-        on=['product_id', 'week_start'],
-        how='left',
-        suffixes=('', '_pred_sales')
-    )
-
-    # Renombrar para claridad
-    df_analysis = df_analysis.rename(columns={'predicted': 'predicted_sales'})
-
-    # Calcular costos baseline
-    df_baseline = df_analysis.copy()
-    baseline_costs = df_baseline.apply(calculate_baseline_costs, axis=1)
-    df_baseline = pd.concat([df_baseline, baseline_costs], axis=1)
-
-    # Resumen baseline
-    baseline_summary = {
-        'total_weeks': len(df_baseline),
-        'total_holding_cost': df_baseline['baseline_cost_holding'].sum(),
-        'total_ordering_cost': df_baseline['baseline_cost_ordering'].sum(),
-        'total_backorder_cost': df_baseline['baseline_cost_backorder'].sum(),
-        'total_revenue_urgent': df_baseline['baseline_revenue_urgent'].sum(),
-        'total_cost': df_baseline['baseline_total_cost'].sum()
-    }
-
-    print(f"💰 Costos/Revenue SIN predicción (test period):")
-    print(f"  Semanas analizadas: {baseline_summary['total_weeks']:,}")
-    print()
-    print(f"  COSTOS:")
-    print(f"    Costo holding:   ${baseline_summary['total_holding_cost']:,.2f}")
-    print(f"    Costo ordering:  ${baseline_summary['total_ordering_cost']:,.2f}")
-    print(f"    Costo backorder: ${baseline_summary['total_backorder_cost']:,.2f}")
-    print(f"    Subtotal costos: ${baseline_summary['total_holding_cost'] + baseline_summary['total_ordering_cost'] + baseline_summary['total_backorder_cost']:,.2f}")
-    print()
-    print(f"  REVENUE:")
-    print(f"    Revenue entregas urgentes: ${baseline_summary['total_revenue_urgent']:,.2f}")
-    print(f"    (Fee cobrado a clientes por urgencias NO anticipadas)")
-    print()
-    print(f"  COSTO NETO:      ${baseline_summary['total_cost']:,.2f}")
-    print(f"  ⚠️  Nota: Revenue urgente compensa costos, pero daña satisfacción del cliente")
-    print()
-
-    # ========================================================================
-    # 4.2. CON PREDICCIÓN
-    # ========================================================================
-    print("4.2. ESCENARIO CON PREDICCIÓN")
-    print("-" * 80)
-
-    # Mergear predicciones de clasificación
-    df_analysis = df_analysis.merge(
-        df_pred_clf[['product_id', 'week_start', 'predicted', 'predicted_proba']],
-        on=['product_id', 'week_start'],
-        how='left',
-        suffixes=('', '_pred_urgency')
-    )
-
-    df_analysis = df_analysis.rename(columns={
-        'predicted': 'predicted_urgency',
-        'predicted_proba': 'predicted_urgency_proba'
-    })
-
-    # Llenar NaNs
-    df_analysis['predicted_sales'] = df_analysis['predicted_sales'].fillna(df_analysis['total_sales'])
-    df_analysis['predicted_urgency'] = df_analysis['predicted_urgency'].fillna(0)
-    df_analysis['predicted_urgency_proba'] = df_analysis['predicted_urgency_proba'].fillna(0.5)
-
-    # Calcular costos con predicción
-    df_predicted = df_analysis.copy()
-    predicted_costs = df_predicted.apply(calculate_predicted_costs, axis=1)
-    df_predicted = pd.concat([df_predicted, predicted_costs], axis=1)
-
-    # Resumen con predicción
-    predicted_summary = {
-        'total_weeks': len(df_predicted),
-        'total_holding_cost': df_predicted['predicted_cost_holding'].sum(),
-        'total_ordering_cost': df_predicted['predicted_cost_ordering'].sum(),
-        'total_backorder_cost': df_predicted['predicted_cost_backorder'].sum(),
-        'total_revenue_urgent': df_predicted['predicted_revenue_urgent'].sum(),
-        'total_cost': df_predicted['predicted_total_cost'].sum()
-    }
-
-    print(f"💰 Costos/Revenue CON predicción (test period):")
-    print(f"  Semanas analizadas: {predicted_summary['total_weeks']:,}")
-    print()
-    print(f"  COSTOS:")
-    print(f"    Costo holding:   ${predicted_summary['total_holding_cost']:,.2f}")
-    print(f"    Costo ordering:  ${predicted_summary['total_ordering_cost']:,.2f}")
-    print(f"    Costo backorder: ${predicted_summary['total_backorder_cost']:,.2f}")
-    print(f"    Subtotal costos: ${predicted_summary['total_holding_cost'] + predicted_summary['total_ordering_cost'] + predicted_summary['total_backorder_cost']:,.2f}")
-    print()
-    print(f"  REVENUE:")
-    print(f"    Revenue entregas urgentes: ${predicted_summary['total_revenue_urgent']:,.2f}")
-    print(f"    (Debería ser ~$0 - anticipamos urgencias sin cobrar fee)")
-    print()
-    print(f"  COSTO NETO:      ${predicted_summary['total_cost']:,.2f}")
-    print(f"  ✓ Mejor servicio al cliente sin fees adicionales")
-    print()
-
-    # ========================================================================
-    # 4.3. CÁLCULO DE AHORROS Y ROI
-    # ========================================================================
-    print("4.3. ANÁLISIS DE AHORROS Y ROI")
-    print("-" * 80)
-
-    # Comparar baseline vs predicted
-    df_comparison = df_baseline[['product_id', 'week_start', 'baseline_total_cost']].merge(
-        df_predicted[['product_id', 'week_start', 'predicted_total_cost']],
-        on=['product_id', 'week_start'],
-        how='inner'
-    )
-
-    df_comparison['savings'] = df_comparison['baseline_total_cost'] - df_comparison['predicted_total_cost']
-
-    # Ahorros totales
-    total_savings = df_comparison['savings'].sum()
-    weeks_in_test = len(df_comparison['week_start'].unique())
-    weeks_per_year = 52
-
-    # Proyección anual
-    annual_savings = (total_savings / weeks_in_test) * weeks_per_year
-
-    # Costos del sistema (proporcional al número de productos)
-    # Asumimos que el costo escala con el número de productos
-    system_cost_factor = len(product_list) / len(tier1_2_products)
-    annual_system_cost = COST_SYSTEM_IMPLEMENTATION * system_cost_factor + (COST_SYSTEM_MONTHLY * 12)
-
-    # ROI
-    net_benefit_year1 = annual_savings - annual_system_cost
-    roi = (net_benefit_year1 / annual_system_cost) * 100 if annual_system_cost > 0 else 0
-    payback_period_months = (COST_SYSTEM_IMPLEMENTATION * system_cost_factor / (annual_savings / 12)) if annual_savings > 0 else 999
-
-    print(f"AHORROS:")
-    print(f"  Período de test: {weeks_in_test} semanas")
-    print(f"  Ahorros en test period: ${total_savings:,.2f}")
-    print(f"  Ahorros proyectados anuales: ${annual_savings:,.2f}")
-    print()
-    print(f"COSTOS DEL SISTEMA:")
-    print(f"  Implementación (proporción): ${COST_SYSTEM_IMPLEMENTATION * system_cost_factor:,.2f}")
-    print(f"  Mantenimiento anual: ${COST_SYSTEM_MONTHLY * 12:,.2f}")
-    print(f"  Costo total año 1: ${annual_system_cost:,.2f}")
-    print()
-    print(f"ROI:")
-    print(f"  Beneficio neto año 1: ${net_benefit_year1:,.2f}")
-    print(f"  ROI año 1: {roi:,.1f}%")
-    print(f"  Período de recuperación: {payback_period_months:.1f} meses")
-    print()
-
-    # Retornar resultados
-    return {
-        'tier_name': tier_name,
-        'n_products': len(product_list),
-        'baseline_summary': baseline_summary,
-        'predicted_summary': predicted_summary,
-        'roi_metrics': {
-            'weeks_analyzed': weeks_in_test,
-            'savings_test_period': total_savings,
-            'savings_annual_projected': annual_savings,
-            'system_cost_year1': annual_system_cost,
-            'net_benefit_year1': net_benefit_year1,
-            'roi_year1_pct': roi,
-            'payback_period_months': payback_period_months
-        },
-        'df_comparison': df_comparison
-    }
-
-
-# ============================================================================
-# 5. EJECUTAR ANÁLISIS PARA CADA TIER
-# ============================================================================
+print(f"📊 ESCENARIOS COMPARADOS:")
 print()
-print("="*80)
-print("ANÁLISIS ESCALONADO POR TIER")
-print("="*80)
-
-# FASE 1: Solo Tier 1 (Deployment inmediato)
-results_tier1 = calculate_roi_for_products(tier1_products, "FASE 1: Tier 1 (Deployment)")
-
-# FASE 2: Tier 1+2 (Tras 6 meses de monitoring del Tier 2)
-results_tier1_2 = calculate_roi_for_products(tier1_2_products, "FASE 2: Tier 1+2 (Post-Monitoring)")
-
-
-# ============================================================================
-# 6. GUARDAR RESULTADOS
-# ============================================================================
+print(f"1. Usar SIEMPRE GRANULAR:")
+print(f"   • F1 promedio:   {always_granular_f1:.3f}")
+print(f"   • RMSE promedio: {always_granular_rmse:.2f}")
 print()
-print("="*80)
-print("6. GUARDANDO RESULTADOS")
-print("="*80)
+print(f"2. Usar SIEMPRE AGREGADO:")
+print(f"   • F1 promedio:   {always_aggregated_f1:.3f}")
+print(f"   • RMSE promedio: {always_aggregated_rmse:.2f}")
+print()
+print(f"3. Usar NIVEL ÓPTIMO (Dual Granularity):")
+print(f"   • F1 promedio:   {optimal_f1:.3f}")
+print(f"   • RMSE promedio: {optimal_rmse:.2f}")
 print()
 
-# ROI summary para Tier 1
-roi_summary_tier1 = pd.DataFrame([{
-    'tier': 'Tier 1',
-    'n_products': results_tier1['n_products'],
-    **results_tier1['roi_metrics'],
-    'baseline_total_cost': results_tier1['baseline_summary']['total_cost'],
-    'predicted_total_cost': results_tier1['predicted_summary']['total_cost'],
-    'baseline_revenue_urgent': results_tier1['baseline_summary']['total_revenue_urgent'],
-    'predicted_revenue_urgent': results_tier1['predicted_summary']['total_revenue_urgent']
+# Calcular mejoras
+f1_improvement_vs_granular = ((optimal_f1 - always_granular_f1) / always_granular_f1) * 100
+f1_improvement_vs_aggregated = ((optimal_f1 - always_aggregated_f1) / always_aggregated_f1) * 100
+
+rmse_improvement_vs_granular = ((always_granular_rmse - optimal_rmse) / always_granular_rmse) * 100
+rmse_improvement_vs_aggregated = ((always_aggregated_rmse - optimal_rmse) / always_aggregated_rmse) * 100
+
+print(f"MEJORA POR USAR DUAL GRANULARITY:")
+print(f"  vs Siempre Granular:")
+print(f"    • Mejora F1:   {f1_improvement_vs_granular:+.2f}%")
+print(f"    • Mejora RMSE: {rmse_improvement_vs_granular:+.2f}%")
+print()
+print(f"  vs Siempre Agregado:")
+print(f"    • Mejora F1:   {f1_improvement_vs_aggregated:+.2f}%")
+print(f"    • Mejora RMSE: {rmse_improvement_vs_aggregated:+.2f}%")
+print()
+
+# ============================================================================
+# 3. ANÁLISIS POR NIVEL SELECCIONADO
+# ============================================================================
+print("3. ANÁLISIS POR NIVEL SELECCIONADO")
+print("-" * 80)
+
+# Agrupar por nivel óptimo
+granular_products = df_selection[df_selection['best_overall'] == 'granular']
+aggregated_products = df_selection[df_selection['best_overall'] == 'aggregated']
+
+print(f"PRODUCTOS CON NIVEL GRANULAR ÓPTIMO: {len(granular_products)} ({len(granular_products)/len(df_selection)*100:.1f}%)")
+if len(granular_products) > 0:
+    print(f"  • Tiendas promedio: {granular_products['num_stores'].mean():.1f}")
+    print(f"  • F1 promedio: {granular_products['f1_granular'].mean():.3f}")
+    print(f"  • RMSE promedio: {granular_products['rmse_granular'].mean():.2f}")
+    print(f"  • Mejora F1 vs agregado: {granular_products['f1_improvement_pct'].mean():.2f}%")
+print()
+
+print(f"PRODUCTOS CON NIVEL AGREGADO ÓPTIMO: {len(aggregated_products)} ({len(aggregated_products)/len(df_selection)*100:.1f}%)")
+if len(aggregated_products) > 0:
+    print(f"  • Tiendas promedio: {aggregated_products['num_stores'].mean():.1f}")
+    print(f"  • F1 promedio: {aggregated_products['f1_aggregated'].mean():.3f}")
+    print(f"  • RMSE promedio: {aggregated_products['rmse_aggregated'].mean():.2f}")
+    print(f"  • Mejora F1 vs granular: {aggregated_products['f1_improvement_pct'].mean():.2f}%")
+print()
+
+# ============================================================================
+# 4. IMPACTO EN NEGOCIO
+# ============================================================================
+print("4. ESTIMACIÓN DE IMPACTO EN NEGOCIO")
+print("-" * 80)
+
+# Supuestos de negocio
+AVG_SALES_PER_PRODUCT_PER_WEEK = 50  # Unidades promedio por producto/semana
+WEEKS_PER_YEAR = 52
+COST_BACKORDER_PER_UNIT = 2.0  # Costo por backorder
+COST_HOLDING_PER_UNIT_WEEK = 0.10  # Costo de exceso de inventario
+
+print(f"SUPUESTOS DE NEGOCIO:")
+print(f"  • Ventas promedio: {AVG_SALES_PER_PRODUCT_PER_WEEK} unidades/producto/semana")
+print(f"  • Costo de backorder: ${COST_BACKORDER_PER_UNIT:.2f}/unidad")
+print(f"  • Costo de holding: ${COST_HOLDING_PER_UNIT_WEEK:.2f}/unidad/semana")
+print()
+
+# Estimar impacto de mejor F1
+# Mejor F1 → Menos False Negatives → Menos backorders inesperados
+# Asumimos que mejora en F1 reduce backorders proporcionalmente
+
+n_products = len(df_selection)
+annual_sales = n_products * AVG_SALES_PER_PRODUCT_PER_WEEK * WEEKS_PER_YEAR
+
+# Escenario baseline: Usar siempre granular
+baseline_f1 = always_granular_f1
+# Tasa de backorder inesperado ≈ (1 - Recall) * % urgencias
+# Asumimos 15% de semanas son urgencias
+urgency_rate = 0.15
+recall_baseline = baseline_f1 / 0.7  # Aprox, asumiendo precision ≈ 0.7 * F1
+backorder_rate_baseline = (1 - recall_baseline) * urgency_rate
+
+# Escenario con dual granularity
+optimal_recall = optimal_f1 / 0.7
+backorder_rate_optimal = (1 - optimal_recall) * urgency_rate
+
+# Ahorros
+backorders_avoided = annual_sales * (backorder_rate_baseline - backorder_rate_optimal)
+savings_backorders = backorders_avoided * COST_BACKORDER_PER_UNIT
+
+# Estimar impacto de mejor RMSE
+# Mejor RMSE → Mejor pronóstico → Menos exceso de inventario
+# Asumimos que RMSE se traduce en desviación de inventario
+inventory_excess_baseline = annual_sales * (always_granular_rmse / AVG_SALES_PER_PRODUCT_PER_WEEK) * 0.10
+inventory_excess_optimal = annual_sales * (optimal_rmse / AVG_SALES_PER_PRODUCT_PER_WEEK) * 0.10
+
+savings_holding = (inventory_excess_baseline - inventory_excess_optimal) * COST_HOLDING_PER_UNIT_WEEK
+
+total_savings = savings_backorders + savings_holding
+
+print(f"IMPACTO ESTIMADO (anual):")
+print(f"  • Productos: {n_products}")
+print(f"  • Ventas anuales: {annual_sales:,.0f} unidades")
+print()
+print(f"  AHORROS POR MEJOR CLASIFICACIÓN (F1):")
+print(f"    • Backorders evitados: {backorders_avoided:,.0f} unidades")
+print(f"    • Ahorro backorders: ${savings_backorders:,.2f}")
+print()
+print(f"  AHORROS POR MEJOR REGRESIÓN (RMSE):")
+print(f"    • Reducción exceso inventario: {inventory_excess_baseline - inventory_excess_optimal:,.0f} unidades-semana")
+print(f"    • Ahorro holding cost: ${savings_holding:,.2f}")
+print()
+print(f"  💰 AHORRO TOTAL ESTIMADO: ${total_savings:,.2f}/año")
+print()
+
+# ============================================================================
+# 5. GUARDAR RESULTADOS
+# ============================================================================
+print("5. GUARDANDO RESULTADOS")
+print("-" * 80)
+
+# Crear resumen
+value_summary = pd.DataFrame([{
+    'n_products': n_products,
+    'f1_always_granular': always_granular_f1,
+    'f1_always_aggregated': always_aggregated_f1,
+    'f1_optimal': optimal_f1,
+    'f1_improvement_vs_granular_pct': f1_improvement_vs_granular,
+    'f1_improvement_vs_aggregated_pct': f1_improvement_vs_aggregated,
+    'rmse_always_granular': always_granular_rmse,
+    'rmse_always_aggregated': always_aggregated_rmse,
+    'rmse_optimal': optimal_rmse,
+    'rmse_improvement_vs_granular_pct': rmse_improvement_vs_granular,
+    'rmse_improvement_vs_aggregated_pct': rmse_improvement_vs_aggregated,
+    'backorders_avoided_annual': backorders_avoided,
+    'savings_backorders_annual': savings_backorders,
+    'savings_holding_annual': savings_holding,
+    'total_savings_annual': total_savings
 }])
 
-# ROI summary para Tier 1+2
-roi_summary_tier1_2 = pd.DataFrame([{
-    'tier': 'Tier 1+2',
-    'n_products': results_tier1_2['n_products'],
-    **results_tier1_2['roi_metrics'],
-    'baseline_total_cost': results_tier1_2['baseline_summary']['total_cost'],
-    'predicted_total_cost': results_tier1_2['predicted_summary']['total_cost'],
-    'baseline_revenue_urgent': results_tier1_2['baseline_summary']['total_revenue_urgent'],
-    'predicted_revenue_urgent': results_tier1_2['predicted_summary']['total_revenue_urgent']
-}])
-
-# Guardar CSVs
-roi_file_tier1 = DATA_SIMULATED / 'roi_analysis_tier1.csv'
-roi_summary_tier1.to_csv(roi_file_tier1, index=False)
-print(f"✓ ROI Tier 1 guardado: {roi_file_tier1}")
-
-roi_file_tier1_2 = DATA_SIMULATED / 'roi_analysis_tier1_2.csv'
-roi_summary_tier1_2.to_csv(roi_file_tier1_2, index=False)
-print(f"✓ ROI Tier 1+2 guardado: {roi_file_tier1_2}")
-
-# Guardar comparaciones detalladas
-comparison_file_tier1 = DATA_SIMULATED / 'cost_comparison_tier1.csv'
-results_tier1['df_comparison'].to_csv(comparison_file_tier1, index=False)
-print(f"✓ Comparación Tier 1 guardada: {comparison_file_tier1}")
-
-comparison_file_tier1_2 = DATA_SIMULATED / 'cost_comparison_tier1_2.csv'
-results_tier1_2['df_comparison'].to_csv(comparison_file_tier1_2, index=False)
-print(f"✓ Comparación Tier 1+2 guardada: {comparison_file_tier1_2}")
+value_file = DATA_SIMULATED / 'dual_granularity_value.csv'
+value_summary.to_csv(value_file, index=False)
+print(f"✓ Valor del sistema guardado: {value_file}")
 print()
 
-
 # ============================================================================
-# 7. VISUALIZACIONES
+# 6. VISUALIZACIONES
 # ============================================================================
-print("7. VISUALIZACIONES")
+print("6. VISUALIZACIONES")
 print("-" * 80)
 
-# A. Comparación Tier 1 vs Tier 1+2
-fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-
-# A1. Ahorros anuales comparados
-tiers = ['Tier 1\n(Inmediato)', 'Tier 1+2\n(Post-Monitoring)']
-savings_list = [
-    results_tier1['roi_metrics']['savings_annual_projected'],
-    results_tier1_2['roi_metrics']['savings_annual_projected']
-]
-colors_list = [COLORS['warning'], COLORS['success']]
-
-axes[0, 0].bar(tiers, savings_list, color=colors_list, alpha=0.8, edgecolor='black')
-axes[0, 0].set_title('Ahorros Anuales Proyectados por Fase', fontsize=12, fontweight='bold')
-axes[0, 0].set_ylabel('Ahorros ($)')
-axes[0, 0].grid(True, alpha=0.3, axis='y')
-
-for i, (tier, saving) in enumerate(zip(tiers, savings_list)):
-    axes[0, 0].text(i, saving, f'${saving:,.0f}',
-                    ha='center', va='bottom', fontweight='bold', fontsize=10)
-
-# A2. ROI comparado
-roi_list = [
-    results_tier1['roi_metrics']['roi_year1_pct'],
-    results_tier1_2['roi_metrics']['roi_year1_pct']
-]
-
-axes[0, 1].bar(tiers, roi_list, color=colors_list, alpha=0.8, edgecolor='black')
-axes[0, 1].set_title('ROI Año 1 por Fase', fontsize=12, fontweight='bold')
-axes[0, 1].set_ylabel('ROI (%)')
-axes[0, 1].axhline(0, color='red', linestyle='--', linewidth=1, alpha=0.7)
-axes[0, 1].grid(True, alpha=0.3, axis='y')
-
-for i, (tier, roi_val) in enumerate(zip(tiers, roi_list)):
-    axes[0, 1].text(i, roi_val, f'{roi_val:.1f}%',
-                    ha='center', va='bottom', fontweight='bold', fontsize=10)
-
-# A3. Número de productos
-n_products_list = [
-    results_tier1['n_products'],
-    results_tier1_2['n_products']
-]
-
-axes[1, 0].bar(tiers, n_products_list, color=colors_list, alpha=0.8, edgecolor='black')
-axes[1, 0].set_title('Número de Productos por Fase', fontsize=12, fontweight='bold')
-axes[1, 0].set_ylabel('N° Productos')
-axes[1, 0].grid(True, alpha=0.3, axis='y')
-
-for i, (tier, n_prod) in enumerate(zip(tiers, n_products_list)):
-    axes[1, 0].text(i, n_prod, f'{n_prod}',
-                    ha='center', va='bottom', fontweight='bold', fontsize=10)
-
-# A4. Período de recuperación
-payback_list = [
-    results_tier1['roi_metrics']['payback_period_months'],
-    results_tier1_2['roi_metrics']['payback_period_months']
-]
-
-axes[1, 1].bar(tiers, payback_list, color=colors_list, alpha=0.8, edgecolor='black')
-axes[1, 1].set_title('Período de Recuperación por Fase', fontsize=12, fontweight='bold')
-axes[1, 1].set_ylabel('Meses')
-axes[1, 1].grid(True, alpha=0.3, axis='y')
-
-for i, (tier, payback) in enumerate(zip(tiers, payback_list)):
-    axes[1, 1].text(i, payback, f'{payback:.1f} meses',
-                    ha='center', va='bottom', fontweight='bold', fontsize=10)
-
-plt.tight_layout()
-plt.savefig(FIGURES / '06_tier_comparison.png', dpi=100, bbox_inches='tight')
-print(f"✓ Guardado: {FIGURES / '06_tier_comparison.png'}")
-plt.close()
-
-
-# B. Desglose de costos para Tier 1+2 (el escenario completo)
-fig, ax = plt.subplots(figsize=(10, 6))
-
-categories = ['Holding', 'Ordering', 'Backorder', 'TOTAL']
-baseline_costs_list = [
-    results_tier1_2['baseline_summary']['total_holding_cost'],
-    results_tier1_2['baseline_summary']['total_ordering_cost'],
-    results_tier1_2['baseline_summary']['total_backorder_cost'],
-    results_tier1_2['baseline_summary']['total_cost']
-]
-predicted_costs_list = [
-    results_tier1_2['predicted_summary']['total_holding_cost'],
-    results_tier1_2['predicted_summary']['total_ordering_cost'],
-    results_tier1_2['predicted_summary']['total_backorder_cost'],
-    results_tier1_2['predicted_summary']['total_cost']
-]
-
-x = np.arange(len(categories))
-width = 0.35
-
-bars1 = ax.bar(x - width/2, baseline_costs_list, width, label='Sin Predicción',
-              color=COLORS['danger'], alpha=0.8)
-bars2 = ax.bar(x + width/2, predicted_costs_list, width, label='Con Predicción',
-              color=COLORS['success'], alpha=0.8)
-
-ax.set_title('Comparación de Costos: Con vs Sin Predicción (Tier 1+2)', fontsize=14, fontweight='bold')
-ax.set_xlabel('Categoría')
-ax.set_ylabel('Costo ($)')
-ax.set_xticks(x)
-ax.set_xticklabels(categories)
-ax.legend()
-ax.grid(True, alpha=0.3, axis='y')
-
-# Añadir valores en las barras
-for bars in [bars1, bars2]:
-    for bar in bars:
-        height = bar.get_height()
-        ax.text(bar.get_x() + bar.get_width()/2., height,
-               f'${height:,.0f}',
-               ha='center', va='bottom', fontsize=9)
-
-plt.tight_layout()
-plt.savefig(FIGURES / '06_cost_comparison.png', dpi=100, bbox_inches='tight')
-print(f"✓ Guardado: {FIGURES / '06_cost_comparison.png'}")
-plt.close()
-
-
-# C. ROI analysis para Tier 1+2 (waterfall y proyección)
+# A. Comparación de métricas entre escenarios
 fig, axes = plt.subplots(1, 2, figsize=(15, 5))
 
-# Waterfall chart (manual)
-categories_roi = ['Ahorros\nAnuales', '-Costo\nSistema', '=Beneficio\nNeto']
-values_roi = [
-    results_tier1_2['roi_metrics']['savings_annual_projected'],
-    -results_tier1_2['roi_metrics']['system_cost_year1'],
-    results_tier1_2['roi_metrics']['net_benefit_year1']
-]
-colors_roi = [COLORS['success'], COLORS['danger'], COLORS['primary']]
+scenarios = ['Siempre\nGranular', 'Siempre\nAgregado', 'Dual\nGranularity']
+f1_values = [always_granular_f1, always_aggregated_f1, optimal_f1]
+rmse_values = [always_granular_rmse, always_aggregated_rmse, optimal_rmse]
 
-axes[0].bar(categories_roi, values_roi, color=colors_roi, alpha=0.8, edgecolor='black')
-axes[0].axhline(0, color='black', linestyle='-', linewidth=0.8)
-axes[0].set_title('Análisis de ROI - Año 1 (Tier 1+2)', fontsize=12, fontweight='bold')
-axes[0].set_ylabel('Monto ($)')
+colors = [COLORS['secondary'], COLORS['info'], COLORS['success']]
+
+# F1 comparison
+bars1 = axes[0].bar(scenarios, f1_values, color=colors, alpha=0.8, edgecolor='black')
+axes[0].set_title('F1-Score: Comparación de Estrategias', fontsize=12, fontweight='bold')
+axes[0].set_ylabel('F1-Score')
 axes[0].grid(True, alpha=0.3, axis='y')
+axes[0].set_ylim([min(f1_values) * 0.95, max(f1_values) * 1.05])
 
-for i, (cat, val) in enumerate(zip(categories_roi, values_roi)):
-    axes[0].text(i, val, f'${val:,.0f}',
-                ha='center', va='bottom' if val > 0 else 'top',
-                fontweight='bold', fontsize=10)
+for bar, val in zip(bars1, f1_values):
+    height = bar.get_height()
+    axes[0].text(bar.get_x() + bar.get_width()/2., height,
+                f'{val:.3f}',
+                ha='center', va='bottom', fontweight='bold', fontsize=10)
 
-# Proyección multi-año
-years = np.arange(1, 6)
-annual_savings_projected = results_tier1_2['roi_metrics']['savings_annual_projected']
-system_cost_impl = results_tier1_2['roi_metrics']['system_cost_year1'] - COST_SYSTEM_MONTHLY * 12
-costs_per_year = [system_cost_impl + COST_SYSTEM_MONTHLY * 12] + [COST_SYSTEM_MONTHLY * 12] * 4
-savings_per_year = [annual_savings_projected] * 5
-net_benefit_per_year = [s - c for s, c in zip(savings_per_year, costs_per_year)]
-cumulative_benefit = np.cumsum(net_benefit_per_year)
+# RMSE comparison
+bars2 = axes[1].bar(scenarios, rmse_values, color=colors, alpha=0.8, edgecolor='black')
+axes[1].set_title('RMSE: Comparación de Estrategias', fontsize=12, fontweight='bold')
+axes[1].set_ylabel('RMSE')
+axes[1].grid(True, alpha=0.3, axis='y')
+axes[1].set_ylim([min(rmse_values) * 0.95, max(rmse_values) * 1.05])
 
-axes[1].plot(years, cumulative_benefit, marker='o', linewidth=2,
-            color=COLORS['primary'], markersize=8)
-axes[1].axhline(0, color='red', linestyle='--', linewidth=1, alpha=0.7)
-axes[1].fill_between(years, 0, cumulative_benefit, alpha=0.3, color=COLORS['success'])
-axes[1].set_title('Beneficio Acumulado (5 años) - Tier 1+2', fontsize=12, fontweight='bold')
-axes[1].set_xlabel('Año')
-axes[1].set_ylabel('Beneficio Acumulado ($)')
-axes[1].grid(True, alpha=0.3)
-axes[1].set_xticks(years)
-
-for year, benefit in zip(years, cumulative_benefit):
-    axes[1].text(year, benefit, f'${benefit:,.0f}',
-                ha='center', va='bottom', fontsize=9)
+for bar, val in zip(bars2, rmse_values):
+    height = bar.get_height()
+    axes[1].text(bar.get_x() + bar.get_width()/2., height,
+                f'{val:.2f}',
+                ha='center', va='bottom', fontweight='bold', fontsize=10)
 
 plt.tight_layout()
-plt.savefig(FIGURES / '06_roi_analysis.png', dpi=100, bbox_inches='tight')
-print(f"✓ Guardado: {FIGURES / '06_roi_analysis.png'}")
+plt.savefig(FIGURES / '06_strategy_comparison.png', dpi=100, bbox_inches='tight')
+print(f"✓ Guardado: {FIGURES / '06_strategy_comparison.png'}")
 plt.close()
 
+# B. Distribución de selección
+fig, axes = plt.subplots(1, 2, figsize=(15, 5))
 
-# D. Top productos con mayor ahorro (Tier 1+2)
-df_savings_by_product = results_tier1_2['df_comparison'].groupby('product_id')['savings'].sum().sort_values(ascending=False).head(15)
+# Pie chart de selección
+selection_counts = df_selection['best_overall'].value_counts()
+axes[0].pie(selection_counts, labels=['Granular', 'Agregado'], autopct='%1.1f%%',
+           colors=[COLORS['primary'], COLORS['secondary']], startangle=90)
+axes[0].set_title('Distribución de Nivel Óptimo', fontsize=12, fontweight='bold')
 
-fig, ax = plt.subplots(figsize=(12, 6))
-df_savings_by_product.plot(kind='bar', ax=ax, color=COLORS['info'], alpha=0.8, edgecolor='black')
-ax.set_title('TOP 15 Productos con Mayor Ahorro (Tier 1+2)', fontsize=12, fontweight='bold')
-ax.set_xlabel('Producto')
-ax.set_ylabel('Ahorro Total ($)')
-ax.tick_params(axis='x', rotation=45)
-ax.grid(True, alpha=0.3, axis='y')
+# Bar chart de ahorros por componente
+components = ['Backorders\nevitados', 'Reducción\nholding cost', 'TOTAL']
+savings_values = [savings_backorders, savings_holding, total_savings]
+colors_savings = [COLORS['danger'], COLORS['warning'], COLORS['success']]
+
+bars = axes[1].bar(components, savings_values, color=colors_savings, alpha=0.8, edgecolor='black')
+axes[1].set_title('Ahorros Anuales Estimados', fontsize=12, fontweight='bold')
+axes[1].set_ylabel('Ahorros ($)')
+axes[1].grid(True, alpha=0.3, axis='y')
+
+for bar, val in zip(bars, savings_values):
+    height = bar.get_height()
+    axes[1].text(bar.get_x() + bar.get_width()/2., height,
+                f'${val:,.0f}',
+                ha='center', va='bottom', fontweight='bold', fontsize=10)
 
 plt.tight_layout()
-plt.savefig(FIGURES / '06_savings_by_product.png', dpi=100, bbox_inches='tight')
-print(f"✓ Guardado: {FIGURES / '06_savings_by_product.png'}")
+plt.savefig(FIGURES / '06_savings_breakdown.png', dpi=100, bbox_inches='tight')
+print(f"✓ Guardado: {FIGURES / '06_savings_breakdown.png'}")
+plt.close()
+
+# C. Mejora por número de tiendas
+fig, ax = plt.subplots(figsize=(10, 6))
+
+# Scatter: num_stores vs f1_improvement_pct
+colors_map = df_selection['best_overall'].map({'granular': COLORS['primary'], 'aggregated': COLORS['secondary']})
+ax.scatter(df_selection['num_stores'], df_selection['f1_improvement_pct'],
+          c=colors_map, alpha=0.6, s=50)
+
+ax.set_xlabel('Número de Tiendas', fontsize=11)
+ax.set_ylabel('Mejora F1 (%)', fontsize=11)
+ax.set_title('Mejora F1 vs Número de Tiendas por Producto', fontsize=12, fontweight='bold')
+ax.grid(True, alpha=0.3)
+ax.axhline(0, color='red', linestyle='--', linewidth=1, alpha=0.7)
+
+# Legend
+from matplotlib.patches import Patch
+legend_elements = [Patch(facecolor=COLORS['primary'], label='Granular óptimo'),
+                  Patch(facecolor=COLORS['secondary'], label='Agregado óptimo')]
+ax.legend(handles=legend_elements)
+
+plt.tight_layout()
+plt.savefig(FIGURES / '06_improvement_vs_stores.png', dpi=100, bbox_inches='tight')
+print(f"✓ Guardado: {FIGURES / '06_improvement_vs_stores.png'}")
 plt.close()
 
 print()
 
-
 # ============================================================================
-# 8. RESUMEN EJECUTIVO
+# 7. RESUMEN EJECUTIVO
 # ============================================================================
 print()
 print("="*80)
-print("RESUMEN EJECUTIVO - VALOR OPERATIVO")
+print("RESUMEN EJECUTIVO - VALOR DEL SISTEMA DE DUAL GRANULARIDAD")
 print("="*80)
 print()
 
-print("📊 ESTRATEGIA DE ROLLOUT ESCALONADO:")
-print()
-print("FASE 1: DEPLOYMENT INMEDIATO (Tier 1)")
-print(f"  • Productos: {results_tier1['n_products']}")
-print(f"  • Ahorros anuales: ${results_tier1['roi_metrics']['savings_annual_projected']:,.2f}")
-print(f"  • ROI año 1: {results_tier1['roi_metrics']['roi_year1_pct']:.1f}%")
-print(f"  • Recuperación: {results_tier1['roi_metrics']['payback_period_months']:.1f} meses")
-print(f"  ✓ Modelos con F1 ≥ 0.5, alta confianza")
-print()
-print("FASE 2: EXPANSIÓN POST-MONITORING (Tier 1+2)")
-print(f"  • Productos: {results_tier1_2['n_products']} ({results_tier1_2['n_products'] - results_tier1['n_products']} adicionales)")
-print(f"  • Ahorros anuales: ${results_tier1_2['roi_metrics']['savings_annual_projected']:,.2f}")
-print(f"  • ROI año 1: {results_tier1_2['roi_metrics']['roi_year1_pct']:.1f}%")
-print(f"  • Recuperación: {results_tier1_2['roi_metrics']['payback_period_months']:.1f} meses")
-print(f"  ✓ Incluye Tier 2 (F1 ≥ 0.3) tras 6 meses de monitoreo")
+print(f"📊 PRODUCTOS ANALIZADOS: {n_products}")
 print()
 
-print("💡 VALOR INCREMENTAL DE TIER 2:")
-incremental_savings = results_tier1_2['roi_metrics']['savings_annual_projected'] - results_tier1['roi_metrics']['savings_annual_projected']
-print(f"  • Ahorros adicionales: ${incremental_savings:,.2f}/año")
-print(f"  • Productos adicionales: {results_tier1_2['n_products'] - results_tier1['n_products']}")
-print(f"  • Ahorro promedio por producto Tier 2: ${incremental_savings / max(1, results_tier1_2['n_products'] - results_tier1['n_products']):,.2f}/año")
+print(f"🎯 ESTRATEGIA ÓPTIMA:")
+print(f"  • Usar GRANULAR para: {len(granular_products)} productos ({len(granular_products)/n_products*100:.1f}%)")
+print(f"  • Usar AGREGADO para:  {len(aggregated_products)} productos ({len(aggregated_products)/n_products*100:.1f}%)")
 print()
 
-print("🎯 MODELO DE NEGOCIO - IMPACTO EN SATISFACCIÓN:")
-print(f"  SIN ML: ${results_tier1_2['baseline_summary']['total_revenue_urgent']:,.2f} cobrados a clientes")
-print(f"           → Clientes pagan fee por urgencias NO anticipadas")
-print(f"           → Experiencia negativa, riesgo de churn")
-print()
-print(f"  CON ML: ${results_tier1_2['predicted_summary']['total_revenue_urgent']:,.2f} cobrados a clientes")
-print(f"           → Urgencias anticipadas SIN cobrar fee")
-print(f"           → Mejor experiencia, mayor retención")
-print(f"           → Ahorro en costos internos: ${results_tier1_2['roi_metrics']['savings_annual_projected']:,.2f}/año")
+print(f"📈 MEJORA DE MÉTRICAS vs Usar Siempre Granular:")
+print(f"  • Mejora F1:   {f1_improvement_vs_granular:+.2f}%")
+print(f"  • Mejora RMSE: {rmse_improvement_vs_granular:+.2f}%")
 print()
 
-print("📁 OUTPUTS GENERADOS:")
-print(f"  • {roi_file_tier1.name}")
-print(f"  • {roi_file_tier1_2.name}")
-print(f"  • {comparison_file_tier1.name}")
-print(f"  • {comparison_file_tier1_2.name}")
-print(f"  • 06_tier_comparison.png")
-print(f"  • 06_cost_comparison.png")
-print(f"  • 06_roi_analysis.png")
-print(f"  • 06_savings_by_product.png")
+print(f"📈 MEJORA DE MÉTRICAS vs Usar Siempre Agregado:")
+print(f"  • Mejora F1:   {f1_improvement_vs_aggregated:+.2f}%")
+print(f"  • Mejora RMSE: {rmse_improvement_vs_aggregated:+.2f}%")
+print()
+
+print(f"💰 IMPACTO EN NEGOCIO (estimado anual):")
+print(f"  • Backorders evitados: {backorders_avoided:,.0f} unidades")
+print(f"  • Ahorro por backorders: ${savings_backorders:,.2f}")
+print(f"  • Ahorro por holding cost: ${savings_holding:,.2f}")
+print(f"  • AHORRO TOTAL: ${total_savings:,.2f}/año")
+print()
+
+print(f"📁 OUTPUTS GENERADOS:")
+print(f"  • dual_granularity_value.csv")
+print(f"  • 06_strategy_comparison.png")
+print(f"  • 06_savings_breakdown.png")
+print(f"  • 06_improvement_vs_stores.png")
 print()
 
 print("="*80)
 print("✓ ANÁLISIS DE VALOR OPERATIVO COMPLETADO")
 print("="*80)
 print()
-print("RECOMENDACIÓN ESTRATÉGICA:")
+
+print("CONCLUSIÓN:")
+print(f"  ✓ Sistema de dual granularidad supera estrategias de un solo nivel")
+print(f"  ✓ Mejora F1: {max(f1_improvement_vs_granular, f1_improvement_vs_aggregated):+.2f}%")
+print(f"  ✓ Mejora RMSE: {max(rmse_improvement_vs_granular, rmse_improvement_vs_aggregated):+.2f}%")
+print(f"  ✓ Decisión personalizada por producto maximiza valor de negocio")
+print(f"  ✓ Ahorros estimados: ${total_savings:,.2f}/año")
 print()
-print("FASE 1 (Meses 1-6): Deployment de Tier 1")
-print(f"  ✓ {results_tier1['n_products']} productos con modelos excelentes (F1 ≥ 0.5)")
-print(f"  ✓ ROI confirmado: {results_tier1['roi_metrics']['roi_year1_pct']:.1f}%")
-print(f"  ✓ Recuperación rápida: {results_tier1['roi_metrics']['payback_period_months']:.1f} meses")
-print(f"  → Implementar inmediatamente para capturar ${results_tier1['roi_metrics']['savings_annual_projected']:,.2f}/año")
-print()
-print("FASE 2 (Meses 7-12): Expansión a Tier 2")
-print(f"  ✓ Monitorear {results_tier1_2['n_products'] - results_tier1['n_products']} productos adicionales")
-print(f"  ✓ Validar performance en producción")
-print(f"  ✓ Optimizar umbrales de decisión")
-print(f"  → Si estable, capturar ${incremental_savings:,.2f}/año adicionales")
-print()
-print("BENEFICIOS CLAVE:")
-print(f"  ✓ Ahorros operativos: hasta ${results_tier1_2['roi_metrics']['savings_annual_projected']:,.2f}/año")
-print(f"  ✓ Mejor servicio al cliente (sin fees por urgencia)")
-print(f"  ✓ Reducción de backorders y ventas perdidas")
-print(f"  ✓ ROI positivo desde año 1: {results_tier1_2['roi_metrics']['roi_year1_pct']:.1f}%")
+
+print("RECOMENDACIÓN:")
+print(f"  → Implementar sistema de dual granularidad")
+print(f"  → {len(granular_products)} productos usan nivel granular")
+print(f"  → {len(aggregated_products)} productos usan nivel agregado")
+print(f"  → Selección automática basada en métricas de validación")
 print()
