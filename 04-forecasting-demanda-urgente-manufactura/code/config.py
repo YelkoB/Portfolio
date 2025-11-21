@@ -24,8 +24,7 @@ for path in [DATA_RAW, DATA_PROCESSED, DATA_SIMULATED, RESULTS, FIGURES, OUTPUT]
 # PARÁMETROS TEMPORALES
 # ============================================
 TRAIN_RATIO = 0.80
-VAL_RATIO = 0.10
-TEST_RATIO = 0.10
+TEST_RATIO = 0.20
 AGGREGATION = 'weekly'  # Agregación temporal
 FORECAST_HORIZON = [1, 2, 4]  # Horizontes de predicción en semanas
 
@@ -143,8 +142,8 @@ def get_figure_path(filename):
 # ============================================
 
 # Verificar que los ratios suman 1.0
-assert abs(TRAIN_RATIO + VAL_RATIO + TEST_RATIO - 1.0) < 1e-10, \
-    "Los ratios de train/val/test deben sumar 1.0"
+assert abs(TRAIN_RATIO + TEST_RATIO - 1.0) < 1e-10, \
+    "Los ratios de train/test deben sumar 1.0"
 
 # Verificar que los horizontes son positivos
 assert all(h > 0 for h in FORECAST_HORIZON), \
@@ -153,4 +152,4 @@ assert all(h > 0 for h in FORECAST_HORIZON), \
 print(f"✓ Configuración cargada correctamente")
 print(f"  - PROJECT_ROOT: {PROJECT_ROOT}")
 print(f"  - RANDOM_SEED: {RANDOM_SEED}")
-print(f"  - TRAIN/VAL/TEST: {TRAIN_RATIO}/{VAL_RATIO}/{TEST_RATIO}")
+print(f"  - TRAIN/TEST: {TRAIN_RATIO}/{TEST_RATIO}")

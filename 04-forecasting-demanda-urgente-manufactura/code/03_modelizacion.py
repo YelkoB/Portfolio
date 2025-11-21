@@ -86,7 +86,7 @@ MODELS_DIR_GRANULAR.mkdir(parents=True, exist_ok=True)
 MODELS_DIR_AGGREGATED.mkdir(parents=True, exist_ok=True)
 
 print(f"✓ Directorios de modelos creados:")
-print(f"  • {models_dir}")
+print(f"  • {MODELS_DIR_GRANULAR}")
 print(f"  • {MODELS_DIR_AGGREGATED}")
 print()
 
