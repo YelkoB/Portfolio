@@ -16,13 +16,17 @@ EVALUACIÓN:
 
 INPUT:
 - data/simulated/features_weekly_granular.csv (producto-tienda)
-- data/simulated/features_weekly_aggregated.csv (producto-base) [PENDIENTE]
+- data/simulated/features_weekly_aggregated.csv (producto-base)
 - data/simulated/best_models_granular.csv
+- data/simulated/best_models_aggregated.csv
 - models/granular/*.pkl
+- models/aggregated/*.pkl
 
 OUTPUT:
-- data/simulated/test_predictions_granular.csv - Predicciones en test set
-- data/simulated/validation_metrics_granular.csv - Métricas finales
+- data/simulated/test_predictions_granular.csv
+- data/simulated/test_predictions_aggregated.csv
+- data/simulated/validation_metrics_granular.csv
+- data/simulated/validation_metrics_aggregated.csv
 - results/figures/04_*.png - Visualizaciones de validación
 """
 
@@ -66,27 +70,48 @@ MODELS_DIR_GRANULAR = PROJECT_ROOT / 'models' / 'granular'
 MODELS_DIR_AGGREGATED = PROJECT_ROOT / 'models' / 'aggregated'
 
 # ============================================================================
-# 1. CARGA DE DATOS
+# 1. CARGA DE DATOS (GRANULAR Y AGREGADO)
 # ============================================================================
-print("1. CARGANDO DATOS Y MODELOS (GRANULAR)")
+print("1. CARGANDO DATOS Y MODELOS")
 print("-" * 80)
 
-df = pd.read_csv(DATA_SIMULATED / 'features_weekly_granular.csv')
-df['week_start'] = pd.to_datetime(df['week_start'])
+# Intentar cargar nivel GRANULAR
+df_granular = None
+best_models_granular = None
+granular_file = DATA_SIMULATED / 'features_weekly_granular.csv'
+best_granular_file = DATA_SIMULATED / 'best_models_granular.csv'
 
-df_best = pd.read_csv(DATA_SIMULATED / 'best_models_granular.csv')
+if granular_file.exists() and best_granular_file.exists():
+    df_granular = pd.read_csv(granular_file)
+    df_granular['week_start'] = pd.to_datetime(df_granular['week_start'])
+    best_models_granular = pd.read_csv(best_granular_file)
+    print(f"✅ GRANULAR (producto-tienda): {df_granular.shape}")
+    print(f"   Productos: {df_granular['product_id'].nunique()}")
+    print(f"   Mejores modelos: {len(best_models_granular)}")
+else:
+    print(f"❌ GRANULAR: Archivos no encontrados")
 
-print(f"✓ Dataset GRANULAR cargado: {df.shape}")
-print(f"  Productos: {df['product_id'].nunique()}")
-print()
-print(f"✓ Mejores modelos GRANULAR: {len(df_best)}")
-print(f"  Regresión: {(df_best['task'] == 'regression').sum()}")
-print(f"  Clasificación: {(df_best['task'] == 'classification').sum()}")
+# Intentar cargar nivel AGREGADO
+df_aggregated = None
+best_models_aggregated = None
+aggregated_file = DATA_SIMULATED / 'features_weekly_aggregated.csv'
+best_aggregated_file = DATA_SIMULATED / 'best_models_aggregated.csv'
+
+if aggregated_file.exists() and best_aggregated_file.exists():
+    df_aggregated = pd.read_csv(aggregated_file)
+    df_aggregated['week_start'] = pd.to_datetime(df_aggregated['week_start'])
+    best_models_aggregated = pd.read_csv(best_aggregated_file)
+    print(f"✅ AGREGADO (producto-base): {df_aggregated.shape}")
+    print(f"   Productos: {df_aggregated['product_base'].nunique()}")
+    print(f"   Mejores modelos: {len(best_models_aggregated)}")
+else:
+    print(f"⚠️  AGREGADO: Archivos no encontrados")
+
 print()
 
-print("💡 NOTA: Este script procesa nivel GRANULAR (producto-tienda)")
-print("   Nivel AGREGADO pendiente (requiere features_weekly_aggregated.csv)")
-print()
+# Verificar que al menos un dataset esté disponible
+if df_granular is None and df_aggregated is None:
+    raise FileNotFoundError("No hay datasets disponibles. Ejecuta script 03 primero.")
 
 # Cargar feature list
 with open(DATA_SIMULATED / 'feature_list.json', 'r') as f:
