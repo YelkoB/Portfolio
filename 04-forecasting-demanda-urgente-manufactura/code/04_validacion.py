@@ -113,6 +113,34 @@ print()
 if df_granular is None and df_aggregated is None:
     raise FileNotFoundError("No hay datasets disponibles. Ejecuta script 03 primero.")
 
+# Preparar datasets para procesar
+datasets_to_process = []
+
+if df_granular is not None and best_models_granular is not None:
+    datasets_to_process.append({
+        'df': df_granular,
+        'df_best': best_models_granular,
+        'id_col': 'product_id',
+        'level_name': 'GRANULAR (producto-tienda)',
+        'models_dir': MODELS_DIR_GRANULAR,
+        'suffix': 'granular'
+    })
+
+if df_aggregated is not None and best_models_aggregated is not None:
+    datasets_to_process.append({
+        'df': df_aggregated,
+        'df_best': best_models_aggregated,
+        'id_col': 'product_base',
+        'level_name': 'AGREGADO (producto-base)',
+        'models_dir': MODELS_DIR_AGGREGATED,
+        'suffix': 'aggregated'
+    })
+
+print(f"📊 NIVELES A VALIDAR: {len(datasets_to_process)}")
+for dataset in datasets_to_process:
+    print(f"   • {dataset['level_name']}")
+print()
+
 # Cargar feature list
 with open(DATA_SIMULATED / 'feature_list.json', 'r') as f:
     feature_list = json.load(f)
@@ -133,74 +161,94 @@ feature_cols = [
     'percentile_threshold', 'growth_rate'
 ]
 
-feature_cols = [f for f in feature_cols if f in df.columns]
-
 # ============================================================================
-# 2. TRAIN/VAL/TEST SPLIT
+# 2. TRAIN/TEST SPLIT
 # ============================================================================
 
-def temporal_split(product_df, train_pct=0.70, val_pct=0.15):
-    """Split temporal sin data leakage"""
+def temporal_split(product_df, train_pct=0.80):
+    """Split temporal Train 80% / Test 20%"""
     df_sorted = product_df.sort_values('week_start').reset_index(drop=True)
     n = len(df_sorted)
 
     train_end = int(n * train_pct)
-    val_end = int(n * (train_pct + val_pct))
 
     train = df_sorted.iloc[:train_end]
-    val = df_sorted.iloc[train_end:val_end]
-    test = df_sorted.iloc[val_end:]
+    test = df_sorted.iloc[train_end:]
 
-    return train, val, test
+    return train, test
 
 
 # ============================================================================
-# 3. EVALUACIÓN EN TEST SET
+# 3. EVALUACIÓN EN TEST SET (AMBOS NIVELES)
 # ============================================================================
 print("2. EVALUANDO MODELOS EN TEST SET")
 print("-" * 80)
 
-test_results = []
-predictions = []
+# Almacenar resultados de todos los niveles
+all_results = {}
 
-products = df['product_id'].unique()
+# ============================================================================
+# LOOP SOBRE AMBOS NIVELES (GRANULAR Y AGREGADO)
+# ============================================================================
+for dataset_info in datasets_to_process:
+    df = dataset_info['df']
+    df_best = dataset_info['df_best']
+    id_col = dataset_info['id_col']
+    level_name = dataset_info['level_name']
+    models_dir = dataset_info['models_dir']
+    suffix = dataset_info['suffix']
 
-for product_id in tqdm(products, desc="Evaluando productos"):
-    df_product = df[df['product_id'] == product_id]
+    print(f"\n{'='*80}")
+    print(f"PROCESANDO: {level_name}")
+    print(f"{'='*80}")
+    print(f"  • Productos: {df[id_col].nunique()}")
+    print(f"  • Modelos dir: {models_dir}")
+    print()
 
-    # Split
-    train, val, test = temporal_split(df_product)
+    # Filtrar feature_cols disponibles en este dataset
+    feature_cols_filtered = [f for f in feature_cols if f in df.columns]
 
-    if len(test) < 5:
-        continue
+    test_results = []
+    predictions = []
 
-    # Preparar test set
-    X_test = test[feature_cols]
-    y_test_reg = test['sales_target']  # Predicción próxima semana
-    y_test_clf = test['is_urgent_target']  # Urgencia próxima semana
+    products = df[id_col].unique()
 
-    # Eliminar NaNs
-    mask_test = ~(X_test.isna().any(axis=1))
-    X_test_clean = X_test[mask_test]
-    y_test_reg_clean = y_test_reg[mask_test]
-    y_test_clf_clean = y_test_clf[mask_test]
-    test_weeks = test.loc[mask_test, 'week_start']
+    for product_id in tqdm(products, desc=f"Evaluando {suffix}"):
+        df_product = df[df[id_col] == product_id]
 
-    if len(X_test_clean) < 3:
-        continue
+        # Split (Train 80% / Test 20%)
+        train, test = temporal_split(df_product)
 
-    # ========================================================================
-    # A. REGRESIÓN
-    # ========================================================================
-    best_reg_model = df_best[
-        (df_best['product_id'] == product_id) &
-        (df_best['task'] == 'regression')
-    ]
+        if len(test) < 5:
+            continue
 
-    if len(best_reg_model) > 0:
-        model_name = best_reg_model.iloc[0]['model']
-        model_type = 'rf' if model_name == 'RandomForest' else 'xgb'
-        model_path = MODELS_DIR_GRANULAR / f'{product_id}_{model_type}_reg.pkl'
+        # Preparar test set
+        X_test = test[feature_cols_filtered]
+        y_test_reg = test['sales_target']  # Predicción próxima semana
+        y_test_clf = test['is_urgent_target']  # Urgencia próxima semana
+
+        # Eliminar NaNs
+        mask_test = ~(X_test.isna().any(axis=1))
+        X_test_clean = X_test[mask_test]
+        y_test_reg_clean = y_test_reg[mask_test]
+        y_test_clf_clean = y_test_clf[mask_test]
+        test_weeks = test.loc[mask_test, 'week_start']
+
+        if len(X_test_clean) < 3:
+            continue
+
+        # ========================================================================
+        # A. REGRESIÓN
+        # ========================================================================
+        best_reg_model = df_best[
+            (df_best[id_col] == product_id) &
+            (df_best['task'] == 'regression')
+        ]
+
+        if len(best_reg_model) > 0:
+            model_name = best_reg_model.iloc[0]['model']
+            model_type = 'rf' if model_name == 'RandomForest' else 'xgb'
+            model_path = models_dir / f'{product_id}_{model_type}_reg.pkl'
 
         if model_path.exists():
             with open(model_path, 'rb') as f:
@@ -215,7 +263,7 @@ for product_id in tqdm(products, desc="Evaluando productos"):
             mape = np.mean(np.abs((y_test_reg_clean - y_pred_reg) / (y_test_reg_clean + 1))) * 100
 
             test_results.append({
-                'product_id': product_id,
+                id_col: product_id,
                 'model': model_name,
                 'task': 'regression',
                 'rmse': rmse,
@@ -226,7 +274,7 @@ for product_id in tqdm(products, desc="Evaluando productos"):
             # Guardar predicciones
             for idx, (week, actual, pred) in enumerate(zip(test_weeks, y_test_reg_clean, y_pred_reg)):
                 predictions.append({
-                    'product_id': product_id,
+                    id_col: product_id,
                     'week_start': week,
                     'task': 'regression',
                     'actual': actual,
@@ -235,18 +283,18 @@ for product_id in tqdm(products, desc="Evaluando productos"):
                     'abs_error': abs(actual - pred)
                 })
 
-    # ========================================================================
-    # B. CLASIFICACIÓN
-    # ========================================================================
-    best_clf_model = df_best[
-        (df_best['product_id'] == product_id) &
-        (df_best['task'] == 'classification')
-    ]
+        # ========================================================================
+        # B. CLASIFICACIÓN
+        # ========================================================================
+        best_clf_model = df_best[
+            (df_best[id_col] == product_id) &
+            (df_best['task'] == 'classification')
+        ]
 
-    if len(best_clf_model) > 0:
-        model_name = best_clf_model.iloc[0]['model']
-        model_type = 'rf' if model_name == 'RandomForest' else 'xgb'
-        model_path = MODELS_DIR_GRANULAR / f'{product_id}_{model_type}_clf.pkl'
+        if len(best_clf_model) > 0:
+            model_name = best_clf_model.iloc[0]['model']
+            model_type = 'rf' if model_name == 'RandomForest' else 'xgb'
+            model_path = models_dir / f'{product_id}_{model_type}_clf.pkl'
 
         if model_path.exists() and y_test_clf_clean.sum() > 0:
             with open(model_path, 'rb') as f:
@@ -273,7 +321,7 @@ for product_id in tqdm(products, desc="Evaluando productos"):
                 auc = 0.5
 
             test_results.append({
-                'product_id': product_id,
+                id_col: product_id,
                 'model': model_name,
                 'task': 'classification',
                 'precision': precision,
@@ -285,7 +333,7 @@ for product_id in tqdm(products, desc="Evaluando productos"):
             # Guardar predicciones
             for idx, (week, actual, pred, proba) in enumerate(zip(test_weeks, y_test_clf_clean, y_pred_clf, y_pred_proba)):
                 predictions.append({
-                    'product_id': product_id,
+                    id_col: product_id,
                     'week_start': week,
                     'task': 'classification',
                     'actual': int(actual),
@@ -294,81 +342,151 @@ for product_id in tqdm(products, desc="Evaluando productos"):
                     'correct': int(actual == pred)
                 })
 
-# Crear DataFrames
-df_test_results = pd.DataFrame(test_results)
-df_predictions = pd.DataFrame(predictions)
+    # Crear DataFrames para este nivel
+    df_test_results = pd.DataFrame(test_results)
+    df_predictions = pd.DataFrame(predictions)
+
+    print()
+    print(f"✓ Evaluación {suffix} completada")
+    print(f"  Productos evaluados: {df_test_results[id_col].nunique()}")
+    print(f"  Predicciones generadas: {len(df_predictions):,}")
+    print()
+
+    # ========================================================================
+    # MÉTRICAS FINALES PARA ESTE NIVEL
+    # ========================================================================
+    print(f"{'='*80}")
+    print(f"MÉTRICAS FINALES - {level_name}")
+    print(f"{'='*80}")
+
+    # Regresión
+    df_reg_test = df_test_results[df_test_results['task'] == 'regression']
+    if len(df_reg_test) > 0:
+        print("REGRESIÓN (Predicción de ventas):")
+        print(f"  Productos evaluados: {len(df_reg_test)}")
+        print()
+        summary_reg = df_reg_test.groupby('model')[['rmse', 'mae', 'mape']].mean()
+        print(summary_reg)
+        print()
+        print(f"  Promedio general:")
+        print(f"    RMSE: {df_reg_test['rmse'].mean():.2f}")
+        print(f"    MAE:  {df_reg_test['mae'].mean():.2f}")
+        print(f"    MAPE: {df_reg_test['mape'].mean():.2f}%")
+        print()
+
+    # Clasificación
+    df_clf_test = df_test_results[df_test_results['task'] == 'classification']
+    if len(df_clf_test) > 0:
+        print("CLASIFICACIÓN (Predicción de urgencias):")
+        print(f"  Productos evaluados: {len(df_clf_test)}")
+        print()
+        summary_clf = df_clf_test.groupby('model')[['precision', 'recall', 'f1', 'auc']].mean()
+        print(summary_clf)
+        print()
+        print(f"  Promedio general:")
+        print(f"    Precision: {df_clf_test['precision'].mean():.3f}")
+        print(f"    Recall:    {df_clf_test['recall'].mean():.3f}")
+        print(f"    F1-Score:  {df_clf_test['f1'].mean():.3f}")
+        print(f"    ROC-AUC:   {df_clf_test['auc'].mean():.3f}")
+        print()
+
+    # ========================================================================
+    # GUARDAR RESULTADOS PARA ESTE NIVEL
+    # ========================================================================
+    print(f"GUARDANDO RESULTADOS - {suffix}")
+    print("-" * 80)
+
+    # Métricas
+    metrics_file = DATA_SIMULATED / f'validation_metrics_{suffix}.csv'
+    df_test_results.to_csv(metrics_file, index=False)
+    print(f"✓ Métricas guardadas: {metrics_file}")
+
+    # Predicciones
+    pred_file = DATA_SIMULATED / f'test_predictions_{suffix}.csv'
+    df_predictions.to_csv(pred_file, index=False)
+    print(f"✓ Predicciones guardadas: {pred_file}")
+    print()
+
+    # Guardar en diccionario para comparación posterior
+    all_results[suffix] = {
+        'level_name': level_name,
+        'df_test_results': df_test_results,
+        'df_predictions': df_predictions,
+        'df_reg_test': df_reg_test,
+        'df_clf_test': df_clf_test,
+        'id_col': id_col,
+        'models_dir': models_dir,
+        'feature_cols': feature_cols_filtered
+    }
 
 print()
-print(f"✓ Evaluación completada")
-print(f"  Productos evaluados: {df_test_results['product_id'].nunique()}")
-print(f"  Predicciones generadas: {len(df_predictions):,}")
+print("="*80)
+print("EVALUACIÓN COMPLETADA PARA TODOS LOS NIVELES")
+print("="*80)
 print()
 
 # ============================================================================
-# 4. MÉTRICAS FINALES
+# 4. COMPARACIÓN ENTRE NIVELES (si hay más de uno)
 # ============================================================================
-print("3. MÉTRICAS FINALES EN TEST SET")
-print("-" * 80)
-
-# Regresión
-df_reg_test = df_test_results[df_test_results['task'] == 'regression']
-if len(df_reg_test) > 0:
-    print("REGRESIÓN (Predicción de ventas):")
-    print(f"  Productos evaluados: {len(df_reg_test)}")
-    print()
-    summary_reg = df_reg_test.groupby('model')[['rmse', 'mae', 'mape']].mean()
-    print(summary_reg)
-    print()
-    print(f"  Promedio general:")
-    print(f"    RMSE: {df_reg_test['rmse'].mean():.2f}")
-    print(f"    MAE:  {df_reg_test['mae'].mean():.2f}")
-    print(f"    MAPE: {df_reg_test['mape'].mean():.2f}%")
+if len(all_results) > 1:
+    print("="*80)
+    print("COMPARACIÓN: GRANULAR vs AGREGADO")
+    print("="*80)
     print()
 
-# Clasificación
-df_clf_test = df_test_results[df_test_results['task'] == 'classification']
-if len(df_clf_test) > 0:
-    print("CLASIFICACIÓN (Predicción de urgencias):")
-    print(f"  Productos evaluados: {len(df_clf_test)}")
-    print()
-    summary_clf = df_clf_test.groupby('model')[['precision', 'recall', 'f1', 'auc']].mean()
-    print(summary_clf)
-    print()
-    print(f"  Promedio general:")
-    print(f"    Precision: {df_clf_test['precision'].mean():.3f}")
-    print(f"    Recall:    {df_clf_test['recall'].mean():.3f}")
-    print(f"    F1-Score:  {df_clf_test['f1'].mean():.3f}")
-    print(f"    ROC-AUC:   {df_clf_test['auc'].mean():.3f}")
-    print()
+    for suffix, data in all_results.items():
+        level_name = data['level_name']
+        df_reg = data['df_reg_test']
+        df_clf = data['df_clf_test']
 
-# ============================================================================
-# 5. GUARDAR RESULTADOS (GRANULAR)
-# ============================================================================
-print("4. GUARDANDO RESULTADOS (GRANULAR)")
-print("-" * 80)
+        print(f"📊 {level_name}")
 
-# Métricas (granular)
-metrics_file = DATA_SIMULATED / 'validation_metrics_granular.csv'
-df_test_results.to_csv(metrics_file, index=False)
-print(f"✓ Métricas GRANULAR guardadas: {metrics_file}")
+        if len(df_reg) > 0:
+            print(f"   REGRESIÓN:")
+            print(f"     • Productos evaluados: {len(df_reg)}")
+            print(f"     • RMSE medio: {df_reg['rmse'].mean():.2f}")
+            print(f"     • MAE medio:  {df_reg['mae'].mean():.2f}")
+            print(f"     • MAPE medio: {df_reg['mape'].mean():.2f}%")
 
-# Predicciones (granular)
-pred_file = DATA_SIMULATED / 'test_predictions_granular.csv'
-df_predictions.to_csv(pred_file, index=False)
-print(f"✓ Predicciones GRANULAR guardadas: {pred_file}")
-print()
+        if len(df_clf) > 0:
+            print(f"   CLASIFICACIÓN:")
+            print(f"     • Productos evaluados: {len(df_clf)}")
+            print(f"     • Precision media: {df_clf['precision'].mean():.3f}")
+            print(f"     • Recall medio:    {df_clf['recall'].mean():.3f}")
+            print(f"     • F1 medio:        {df_clf['f1'].mean():.3f}")
+            print(f"     • AUC medio:       {df_clf['auc'].mean():.3f}")
+        print()
+
+    print("-" * 80)
+    print("INTERPRETACIÓN:")
+    print("  • RMSE más alto en agregado es esperado (suma de 4-5 tiendas)")
+    print("  • MAPE y F1 son comparables entre niveles")
+    print("  • Script 05 decidirá qué nivel usar por producto basándose en métricas")
+    print()
 
 # ============================================================================
-# 6. VISUALIZACIONES
+# 5. VISUALIZACIONES
 # ============================================================================
 print("5. VISUALIZACIONES")
 print("-" * 80)
 
+# Usar el primer nivel disponible para visualizaciones
+first_suffix = list(all_results.keys())[0]
+first_data = all_results[first_suffix]
+df_reg_test = first_data['df_reg_test']
+df_predictions = first_data['df_predictions']
+id_col = first_data['id_col']
+models_dir = first_data['models_dir']
+feature_cols_filtered = first_data['feature_cols']
+
+print(f"Generando visualizaciones para: {first_data['level_name']}")
+print()
+
 # A. Actual vs Predicted (Regresión) - Mejor producto
 if len(df_reg_test) > 0:
-    best_product_reg = df_reg_test.loc[df_reg_test['rmse'].idxmin(), 'product_id']
+    best_product_reg = df_reg_test.loc[df_reg_test['rmse'].idxmin(), id_col]
     df_pred_reg = df_predictions[
-        (df_predictions['product_id'] == best_product_reg) &
+        (df_predictions[id_col] == best_product_reg) &
         (df_predictions['task'] == 'regression')
     ].copy()
 
@@ -452,16 +570,16 @@ if len(df_reg_test) > 0:
 print()
 
 # ============================================================================
-# 7. FEATURE IMPORTANCE (Ejemplo con mejor producto)
+# 6. FEATURE IMPORTANCE (Ejemplo con mejor producto)
 # ============================================================================
 print("6. FEATURE IMPORTANCE")
 print("-" * 80)
 
 if len(df_reg_test) > 0:
-    best_product_reg = df_reg_test.loc[df_reg_test['rmse'].idxmin(), 'product_id']
+    best_product_reg = df_reg_test.loc[df_reg_test['rmse'].idxmin(), id_col]
     best_model_name = df_reg_test.loc[df_reg_test['rmse'].idxmin(), 'model']
     model_type = 'rf' if best_model_name == 'RandomForest' else 'xgb'
-    model_path = MODELS_DIR_GRANULAR / f'{best_product_reg}_{model_type}_reg.pkl'
+    model_path = models_dir / f'{best_product_reg}_{model_type}_reg.pkl'
 
     if model_path.exists():
         with open(model_path, 'rb') as f:
@@ -471,7 +589,7 @@ if len(df_reg_test) > 0:
         if hasattr(model, 'feature_importances_'):
             importances = model.feature_importances_
             feature_importance_df = pd.DataFrame({
-                'feature': feature_cols,
+                'feature': feature_cols_filtered,
                 'importance': importances
             }).sort_values('importance', ascending=False).head(20)
 
@@ -495,42 +613,53 @@ if len(df_reg_test) > 0:
             plt.close()
 
 # ============================================================================
-# 8. RESUMEN EJECUTIVO
+# 7. RESUMEN EJECUTIVO
 # ============================================================================
 print()
 print("="*80)
 print("RESUMEN EJECUTIVO - VALIDACIÓN")
 print("="*80)
 print()
-print(f"📊 EVALUACIÓN EN TEST SET:")
-print(f"  • Productos evaluados: {df_test_results['product_id'].nunique()}")
-print(f"  • Total predicciones: {len(df_predictions):,}")
-print()
 
-if len(df_reg_test) > 0:
-    print(f"📈 REGRESIÓN (Predicción de ventas):")
-    print(f"  • RMSE promedio: {df_reg_test['rmse'].mean():.2f}")
-    print(f"  • MAE promedio:  {df_reg_test['mae'].mean():.2f}")
-    print(f"  • MAPE promedio: {df_reg_test['mape'].mean():.2f}%")
-    best_rmse_idx = df_reg_test['rmse'].idxmin()
-    print(f"  • Mejor producto: {df_reg_test.loc[best_rmse_idx, 'product_id']}")
-    print(f"    RMSE: {df_reg_test.loc[best_rmse_idx, 'rmse']:.2f}")
+# Resumen por nivel
+for suffix, data in all_results.items():
+    level_name = data['level_name']
+    df_test_results = data['df_test_results']
+    df_predictions = data['df_predictions']
+    df_reg_test = data['df_reg_test']
+    df_clf_test = data['df_clf_test']
+    id_col = data['id_col']
+
+    print(f"📊 {level_name}:")
+    print(f"  • Productos evaluados: {df_test_results[id_col].nunique()}")
+    print(f"  • Total predicciones: {len(df_predictions):,}")
     print()
 
-if len(df_clf_test) > 0:
-    print(f"🎯 CLASIFICACIÓN (Predicción de urgencias):")
-    print(f"  • Precision promedio: {df_clf_test['precision'].mean():.3f}")
-    print(f"  • Recall promedio:    {df_clf_test['recall'].mean():.3f}")
-    print(f"  • F1-Score promedio:  {df_clf_test['f1'].mean():.3f}")
-    print(f"  • ROC-AUC promedio:   {df_clf_test['auc'].mean():.3f}")
-    best_f1_idx = df_clf_test['f1'].idxmax()
-    print(f"  • Mejor producto: {df_clf_test.loc[best_f1_idx, 'product_id']}")
-    print(f"    F1-Score: {df_clf_test.loc[best_f1_idx, 'f1']:.3f}")
-    print()
+    if len(df_reg_test) > 0:
+        print(f"  📈 REGRESIÓN:")
+        print(f"    • RMSE promedio: {df_reg_test['rmse'].mean():.2f}")
+        print(f"    • MAE promedio:  {df_reg_test['mae'].mean():.2f}")
+        print(f"    • MAPE promedio: {df_reg_test['mape'].mean():.2f}%")
+        best_rmse_idx = df_reg_test['rmse'].idxmin()
+        print(f"    • Mejor producto: {df_reg_test.loc[best_rmse_idx, id_col]}")
+        print(f"      RMSE: {df_reg_test.loc[best_rmse_idx, 'rmse']:.2f}")
+        print()
+
+    if len(df_clf_test) > 0:
+        print(f"  🎯 CLASIFICACIÓN:")
+        print(f"    • Precision promedio: {df_clf_test['precision'].mean():.3f}")
+        print(f"    • Recall promedio:    {df_clf_test['recall'].mean():.3f}")
+        print(f"    • F1-Score promedio:  {df_clf_test['f1'].mean():.3f}")
+        print(f"    • ROC-AUC promedio:   {df_clf_test['auc'].mean():.3f}")
+        best_f1_idx = df_clf_test['f1'].idxmax()
+        print(f"    • Mejor producto: {df_clf_test.loc[best_f1_idx, id_col]}")
+        print(f"      F1-Score: {df_clf_test.loc[best_f1_idx, 'f1']:.3f}")
+        print()
 
 print(f"📁 OUTPUTS GENERADOS:")
-print(f"  • {metrics_file.name}")
-print(f"  • {pred_file.name}")
+for suffix in all_results.keys():
+    print(f"  • validation_metrics_{suffix}.csv")
+    print(f"  • test_predictions_{suffix}.csv")
 print(f"  • 04_regression_predictions.png")
 print(f"  • 04_confusion_matrix.png")
 print(f"  • 04_error_distribution.png")
